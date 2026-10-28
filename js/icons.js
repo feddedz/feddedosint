@@ -37,6 +37,11 @@ const P = {
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   collapse: '<path d="M7 10l5-5 5 5M7 19l5-5 5 5"/>',
   expand: '<path d="M7 5l5 5 5-5M7 14l5 5 5-5"/>',
+  account: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="9.8" r="3"/><path d="M6.2 18.5a6 6 0 0111.6 0"/>',
+  chat: '<path d="M4 5.5h16a1.5 1.5 0 011.5 1.5v8a1.5 1.5 0 01-1.5 1.5H9l-4.5 3.5V16.5A1.5 1.5 0 013 15V7a1.5 1.5 0 011-1.5z"/><path d="M8 9.5h8M8 12.5h5"/>',
+  engine: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="4" r="1.6"/><circle cx="12" cy="20" r="1.6"/><circle cx="4.5" cy="8" r="1.6"/><circle cx="19.5" cy="8" r="1.6"/><circle cx="4.5" cy="16" r="1.6"/><circle cx="19.5" cy="16" r="1.6"/><path d="M12 9V5.6M12 15v3.4M9.4 10.5L6 8.8M14.6 10.5L18 8.8M9.4 13.5L6 15.2M14.6 13.5L18 15.2"/>',
+  shield: '<path d="M12 3l7 3v5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  logout: '<path d="M14 7V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h6a2 2 0 002-2v-2"/><path d="M10 12h10m0 0l-3-3m3 3l-3 3"/>',
 };
 
 export function icon(id, cls = '') {

@@ -22,9 +22,16 @@ export const getKey = id => read(KEYS, {})[id] || '';
 export const setKey = (id, val) => { const k = read(KEYS, {}); if (val) k[id] = val.trim(); else delete k[id]; write(KEYS, k); };
 export const hasKey = id => !!getKey(id);
 
+// ---------- session (login) ----------
+const SESSION = 'feddedosint.session';
+export const getSession = () => read(SESSION, null);
+export const setSession = s => (s ? write(SESSION, s) : (() => { try { localStorage.removeItem(SESSION); } catch {} })());
+export const authToken = () => getSession()?.token || '';
+export const currentUser = () => getSession()?.user || null;
+
 // ---------- settings ----------
 const SETTINGS = 'feddedosint.settings';
-const defaults = { theme: 'dark', proxy: '', graph: true, rail: false, closedGroups: [] };
+const defaults = { theme: 'dark', backendUrl: '', graph: true, rail: false, closedGroups: [] };
 export const settings = () => ({ ...defaults, ...read(SETTINGS, {}) });
 export const setSetting = (k, v) => { const s = settings(); s[k] = v; write(SETTINGS, s); };
 
