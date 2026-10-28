@@ -42,6 +42,12 @@ const P = {
   engine: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="4" r="1.6"/><circle cx="12" cy="20" r="1.6"/><circle cx="4.5" cy="8" r="1.6"/><circle cx="19.5" cy="8" r="1.6"/><circle cx="4.5" cy="16" r="1.6"/><circle cx="19.5" cy="16" r="1.6"/><path d="M12 9V5.6M12 15v3.4M9.4 10.5L6 8.8M14.6 10.5L18 8.8M9.4 13.5L6 15.2M14.6 13.5L18 15.2"/>',
   shield: '<path d="M12 3l7 3v5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
   logout: '<path d="M14 7V5a2 2 0 00-2-2H6a2 2 0 00-2 2v14a2 2 0 002 2h6a2 2 0 002-2v-2"/><path d="M10 12h10m0 0l-3-3m3 3l-3 3"/>',
+  speaker: '<path d="M4 9.5v5h3.5L13 19V5L7.5 9.5H4z"/><path d="M16 9a4 4 0 010 6"/><path d="M18.5 6.5a7 7 0 010 11"/>',
+  stop: '<rect x="6" y="6" width="12" height="12" rx="2.5"/>',
+  pin: '<path d="M9.5 3h5l-1 6 3.5 3.5V15H7v-2.5L10.5 9z"/><path d="M12 15v6"/>',
+  wand: '<path d="M4 20l10-10"/><path d="M15 4.5l1 2.2 2.2 1-2.2 1-1 2.2-1-2.2-2.2-1 2.2-1z"/><path d="M19 13l.6 1.4 1.4.6-1.4.6L19 17l-.6-1.4-1.4-.6 1.4-.6z"/>',
+  trash: '<path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M6.5 7l1 13a1 1 0 001 1h7a1 1 0 001-1l1-13"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
 };
 
 export function icon(id, cls = '') {
