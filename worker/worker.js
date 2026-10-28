@@ -163,22 +163,39 @@ async function handleAI(request, env, user) {
 
   const body = await request.json().catch(() => ({}));
   const model = env.AI_MODEL || 'gemini-2.5-flash';
+  const generationConfig = {
+    temperature: body.temperature ?? 0.4,
+    maxOutputTokens: Math.min(body.maxOutputTokens || 2048, 8192),
+    ...(body.json ? { responseMimeType: 'application/json' } : {}),
+  };
+  // Current flash/pro models "think" by default, which is slow and can consume the whole
+  // output budget before any answer. Disable it (AI_THINKING unset or "0") unless a budget is set.
+  const budget = env.AI_THINKING === undefined ? 0 : Number(env.AI_THINKING);
+  if (Number.isFinite(budget)) generationConfig.thinkingConfig = { thinkingBudget: budget };
+
   const payload = {
     contents: Array.isArray(body.contents) ? body.contents : [{ role: 'user', parts: [{ text: String(body.prompt || '') }] }],
-    generationConfig: {
-      temperature: body.temperature ?? 0.4,
-      maxOutputTokens: Math.min(body.maxOutputTokens || 2048, 8192),
-      ...(body.json ? { responseMimeType: 'application/json' } : {}),
-    },
+    generationConfig,
     ...(body.system ? { systemInstruction: { parts: [{ text: String(body.system) }] } } : {}),
   };
-  const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY }, body: JSON.stringify(payload),
-  }).catch(() => null);
-  if (!upstream) return err('could not reach the AI service', 502, request, env);
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 50000);
+  let upstream;
+  try {
+    upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY }, body: JSON.stringify(payload), signal: ctrl.signal,
+    });
+  } catch (e) {
+    return json({ error: e.name === 'AbortError' ? 'the AI took too long and was cancelled — try a shorter prompt' : 'could not reach the AI service' }, 200, request, env);
+  } finally {
+    clearTimeout(timer);
+  }
   const data = await upstream.json().catch(() => ({}));
   if (!upstream.ok) return json({ error: data?.error?.message || `AI error ${upstream.status}` }, 200, request, env);
-  const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+  const cand = data.candidates?.[0];
+  const text = (cand?.content?.parts || []).map(p => p.text || '').join('');
+  if (!text) return json({ error: `the model returned no text${cand?.finishReason ? ` (finishReason: ${cand.finishReason})` : ''}` }, 200, request, env);
   return json({ text, usage: data.usageMetadata, model }, 200, request, env);
 }
 
