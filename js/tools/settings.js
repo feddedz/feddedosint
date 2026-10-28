@@ -1,5 +1,28 @@
-import { h, card, grid, muted, ext, badge } from '../util.js';
+import { h, card, grid, muted, ext, badge, pivot } from '../util.js';
 import { KEY_DEFS, getKey, setKey, hasKey, settings, setSetting, applyTheme, clearGraph, clearRecent } from '../store.js';
+import * as be from '../backend.js';
+
+function backendCard() {
+  const s = settings();
+  const input = h('input', { class: 'filter', type: 'text', value: s.backendUrl || '', placeholder: 'https://feddedosint-api.you.workers.dev', spellcheck: 'false' });
+  const status = h('span', {}, s.backendUrl ? badge('checking…', 'muted') : badge('not set', 'muted'));
+  const check = async () => {
+    if (!settings().backendUrl) { status.replaceChildren(badge('not set', 'muted')); return; }
+    be.clearHealthCache();
+    const info = await be.health(true);
+    if (!info) { status.replaceChildren(badge('unreachable', 'bad')); return; }
+    status.replaceChildren(badge('connected', 'ok'), ' ', h('span', { class: 'muted small' },
+      `AI ${info.ai ? 'ready (' + info.model + ')' : 'off'}${info.inviteRequired ? ' · invite-only' : ''}`));
+  };
+  const save = h('button', { class: 'mini', type: 'button' }, 'save');
+  save.onclick = async () => { setSetting('backendUrl', input.value.trim().replace(/\/+$/, '')); save.textContent = 'saved'; setTimeout(() => (save.textContent = 'save'), 900); await check(); };
+  check();
+  return card('backend', { wide: true, actions: status },
+    muted('Optional Cloudflare Worker that hides your Gemini key and powers accounts, 2FA and the AI. Set up with the guide, then paste its URL here.'),
+    h('div', { class: 'row' }, input, save),
+    h('p', { class: 'muted small' }, 'guide: ', ext('https://github.com/feddedz/feddedosint/blob/main/worker/README.md', 'worker/README.md'),
+      ' · once connected, ', pivot('account', '', 'sign in →')));
+}
 
 function keyRow(def) {
   const input = h('input', {
@@ -41,6 +64,8 @@ export default {
     const clearBtn = (label, fn) => { const b = h('button', { class: 'mini', type: 'button' }, label); b.onclick = () => { fn(); b.textContent = 'done'; setTimeout(() => (b.textContent = label), 1000); }; return b; };
 
     return grid(
+      backendCard(),
+
       card('api keys', { wide: true },
         muted('Keys are stored only in this browser (localStorage) and are sent only to their own service. Each one unlocks richer live data.'),
         h('div', { class: 'keylist' }, KEY_DEFS.map(keyRow))),

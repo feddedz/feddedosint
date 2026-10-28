@@ -1,4 +1,4 @@
-import { h, getJSON, getText, card, asyncCard, kv, ext, pivot, grid, muted, badge, copyBtn, fmtNum, fmtDate } from '../util.js';
+import { h, getJSON, getText, card, asyncCard, kv, ext, pivot, grid, muted, badge, copyBtn, fmtNum, fmtDate, rawJSON } from '../util.js';
 import { getKey, hasKey } from '../store.js';
 
 const td = new TextEncoder();
@@ -72,7 +72,8 @@ function emailCard(email) {
       h('div', { class: 'breach-list' }, breaches.map(b => h('div', { class: 'breach-item' },
         h('div', { class: 'bi-head' }, h('strong', {}, b.Title), h('span', { class: 'muted small' }, fmtDate(b.BreachDate))),
         h('div', { class: 'muted small' }, `${fmtNum(b.PwnCount)} accounts · `, pivotDomain(b.Domain)),
-        h('div', { class: 'tags' }, (b.DataClasses || []).slice(0, 8).map(c => badge(c)))))),
+        h('div', { class: 'tags' }, (b.DataClasses || []).map(c => badge(c)))))),
+      rawJSON(breaches, `raw HIBP response · ${breaches.length} records`),
     ];
   }, { wide: true });
 }
@@ -136,7 +137,8 @@ function breachLibraryCard() {
     };
     render('');
     const filter = h('input', { class: 'filter', placeholder: `search ${all.length} known breaches…`, oninput: e => render(e.target.value.trim()) });
-    return [h('div', { class: 'row' }, filter, copyBtn(() => all.map(b => `${b.Title}\t${b.BreachDate}\t${b.PwnCount}`).join('\n'), 'copy')), list];
+    return [h('div', { class: 'row' }, filter, copyBtn(() => all.map(b => `${b.Title}\t${b.BreachDate}\t${b.PwnCount}`).join('\n'), 'copy')), list,
+      rawJSON(all, `raw catalogue · ${all.length} breaches`)];
   }, { wide: true });
 }
 

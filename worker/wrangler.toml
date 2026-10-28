@@ -1,0 +1,31 @@
+name = "feddedosint-api"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+# KV namespace that stores users, sessions and rate-limit counters.
+# Create it once with:  npx wrangler kv namespace create USERS
+# then paste the printed id below.
+[[kv_namespaces]]
+binding = "USERS"
+id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
+
+[vars]
+# Exact Gemini model id. Confirm a valid one with:
+#   curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"
+AI_MODEL = "gemini-2.5-flash"
+
+# Which site origins may call this Worker (comma-separated, no trailing slash).
+ALLOWED_ORIGINS = "https://feddedz.github.io,http://localhost:8000"
+
+# The one account allowed to list signups at /admin/users.
+ADMIN_USER = "feddedz"
+
+# "true" = only signed-in users may use the AI (recommended, protects your quota).
+AI_REQUIRE_AUTH = "true"
+
+# "true" = allow new signups. Set "false" to freeze registration.
+SIGNUP_ENABLED = "true"
+
+# Secrets are NOT set here — set them from the CLI so they never touch the repo:
+#   npx wrangler secret put GEMINI_KEY      (your Gemini API key)
+#   npx wrangler secret put SIGNUP_CODE     (optional invite code to gate signups)

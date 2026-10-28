@@ -796,3 +796,71 @@ path.arc-dash { stroke-dasharray: 2 5; }
   .card.collapsed > .body { display: block; }
   a { color: #000; }
 }
+
+/* raw JSON disclosure */
+.rawbox { margin-top: 10px; }
+.rawbox > summary { display: flex; align-items: center; gap: 8px; }
+.rawbox pre.json { margin-top: 8px; max-height: 420px; }
+
+/* ---------- auth / account ---------- */
+
+.authtoggle { display: inline-flex; margin: 10px 0 12px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.authform { display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin-top: 10px; }
+.authform .field { gap: 5px; }
+.authform .field input { padding: 10px 12px; font-size: 13px; }
+button.primary {
+  font: inherit; font-size: 13px; font-weight: 600; color: #050505;
+  background: var(--accent); border: 0; border-radius: 9px; padding: 9px 16px; cursor: pointer; align-self: flex-start;
+}
+button.primary:hover { opacity: .9; }
+button.primary:disabled { opacity: .5; cursor: default; }
+.authform button:not(.primary), .rawbox button {
+  font: inherit; font-size: 12px; color: var(--muted); background: var(--raise);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; align-self: flex-start;
+}
+.authform .verdict { margin: 2px 0 0; }
+.qrbox { width: max-content; margin: 8px 0; padding: 10px; background: #fff; border-radius: 10px; }
+.qrbox svg { display: block; width: 200px; height: 200px; }
+.qrbox.loading { background: var(--inset-2); color: var(--muted); padding: 40px; }
+:root[data-theme="light"] button.primary { color: #fff; }
+
+/* ---------- AI chat ---------- */
+
+.chatwrap { display: flex; flex-direction: column; gap: 10px; }
+.chatlog {
+  display: flex; flex-direction: column; gap: 12px;
+  min-height: 300px; max-height: 60vh; overflow-y: auto;
+  padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.chatempty { display: flex; flex-direction: column; gap: 10px; }
+.msg { display: flex; flex-direction: column; gap: 3px; max-width: 86%; }
+.msg.user { align-self: flex-end; align-items: flex-end; }
+.msg.user > div:last-child { background: var(--accent); color: #060606; padding: 9px 13px; border-radius: 13px 13px 3px 13px; white-space: pre-wrap; }
+.msg.assistant > div:last-child { background: var(--inset-2); border: 1px solid var(--line); padding: 2px 14px; border-radius: 13px 13px 13px 3px; }
+.msg-role { padding: 0 6px; }
+.chipflow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 2px 0 4px; }
+.chatbar { display: flex; gap: 8px; align-items: flex-end; }
+.chatinput {
+  flex: 1; resize: vertical; min-height: 48px; max-height: 200px;
+  padding: 11px 13px; font: 13px/1.5 var(--font); color: var(--text);
+  background: var(--inset); border: 1px solid var(--line); border-radius: 11px; outline: none;
+}
+.chatinput:focus { border-color: var(--line-strong); }
+.chatbtns { display: flex; flex-direction: column; gap: 6px; }
+
+/* light markdown */
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md h3, .md h4, .md h5 { margin: 12px 0 6px; font-size: 13px; letter-spacing: .02em; color: var(--accent); }
+.md p { margin: 7px 0; }
+.md ul, .md ol { margin: 7px 0; padding-left: 20px; }
+.md li { margin: 3px 0; }
+.md code { background: var(--inset); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+
+/* ---------- autonomous engine ---------- */
+
+.enginelog { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; max-height: 300px; overflow-y: auto; }
+.enginelog .step { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; padding: 3px 0; border-top: 1px solid var(--line); }
+.enginelog .step:first-child { border-top: 0; }
+.enginelog .step .badge { flex: none; }
+.enginelog .step span { overflow-wrap: anywhere; }

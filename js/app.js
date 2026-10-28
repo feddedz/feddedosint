@@ -29,11 +29,15 @@ import extract from './tools/extract.js';
 import utils from './tools/utils.js';
 import graph from './tools/graph.js';
 import caseFile from './tools/case.js';
+import account from './tools/account.js';
+import engine from './tools/engine.js';
+import chat from './tools/chat.js';
 import settingsTool from './tools/settings.js';
 
 // Sidebar groups. Every labelled group can be collapsed; collapsed groups still show the active tool.
 const GROUPS = [
   { id: 'start', label: '', tools: [overview] },
+  { id: 'intelligence', label: 'intelligence', tools: [engine, chat] },
   { id: 'identity', label: 'identity', tools: [username, email, phone, breach] },
   { id: 'network', label: 'network', tools: [domain, ip, asn, url, mac, cidr] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
@@ -41,14 +45,15 @@ const GROUPS = [
   { id: 'threat', label: 'threat', tools: [cve, headers] },
   { id: 'research', label: 'research', tools: [records, dorks] },
   { id: 'tools', label: 'tools', tools: [extract, utils] },
-  { id: 'workspace', label: 'workspace', tools: [graph, caseFile, settingsTool] },
+  { id: 'workspace', label: 'workspace', tools: [graph, caseFile, account, settingsTool] },
 ];
 const TITLES = {
   overview: 'universal search', username: 'username intel', email: 'email intel', phone: 'phone intel', breach: 'breach exposure',
   domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
   cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
-  extract: 'entity extractor', utils: 'decoders', graph: 'investigation graph', case: 'case file', settings: 'settings',
+  extract: 'entity extractor', utils: 'decoders', graph: 'investigation graph', case: 'case file',
+  account: 'account & 2fa', settings: 'settings', engine: 'autonomous engine', chat: 'ai assistant',
 };
 // One short line per tool for the launcher.
 const BLURBS = {
@@ -59,7 +64,9 @@ const BLURBS = {
   crypto: 'btc & eth wallet activity', image: 'reverse search & exif', file: 'static triage & hash lookup',
   cve: 'severity & exploit odds', headers: 'trace & vet an email', records: 'companies, courts, news',
   dorks: 'operator query builder', extract: 'pull iocs from any text', utils: 'encode, decode, hash',
-  graph: 'your pivots, visualised', case: 'notes, timeline, reports', settings: 'keys, theme, data',
+  graph: 'your pivots, visualised', case: 'notes, timeline, reports',
+  account: 'sign in · 2fa', settings: 'backend, keys, theme',
+  engine: 'investigate automatically', chat: 'ask, plan, interpret',
 };
 const TOOLS = GROUPS.flatMap(g => g.tools);
 const byId = Object.fromEntries(TOOLS.map(t => [t.id, t]));
