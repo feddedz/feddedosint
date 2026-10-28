@@ -31,6 +31,11 @@ globalThis.fetch = async (url, opts) => {
   url = String(url);
   if (url.includes('github.com/login/oauth/access_token')) return new Response(JSON.stringify({ access_token: 'gho_x' }), { status: 200 });
   if (url.includes('api.github.com/user')) return new Response(JSON.stringify({ login: STUB_LOGIN, name: STUB_LOGIN + ' Name', avatar_url: 'https://x/a.png' }), { status: 200 });
+  if (url.includes('streamGenerateContent')) {
+    const m = url.match(/models\/([^:]+):/)?.[1] || '';
+    if (OVERLOADED.has(m)) return new Response(JSON.stringify({ error: { message: 'high demand' } }), { status: 503 });
+    return new Response('data: {"candidates":[{"content":{"parts":[{"text":"reasoning here","thought":true}]}}]}\n\ndata: {"candidates":[{"content":{"parts":[{"text":"Hi there"}]}}]}\n\n', { status: 200, headers: { 'content-type': 'text/event-stream' } });
+  }
   if (url.includes('generativelanguage.googleapis.com')) {
     const m = url.match(/models\/([^:]+):/)?.[1] || '';
     if (OVERLOADED.has(m)) return new Response(JSON.stringify({ error: { message: 'This model is currently experiencing high demand.' } }), { status: 503 });
@@ -130,6 +135,29 @@ async function loginAs(env, login) {
   OVERLOADED = new Set(['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite']);
   const all = await call(env, 'POST', '/ai/chat', { prompt: 'hi' }, adminTok);
   ok(all.data.error && /all models are busy/i.test(all.data.error), 'BESTMODEL reports when everything is busy');
+  OVERLOADED = new Set();
+}
+
+// --- streaming ---
+{
+  const env = baseEnv();
+  const adminTok = await loginAs(env, 'feddedz');
+  const r = await worker.fetch(req('POST', '/ai/stream', { prompt: 'hi' }, adminTok), env);
+  ok(r.status === 200 && (r.headers.get('content-type') || '').includes('text/event-stream'), 'stream returns SSE');
+  ok(!!r.headers.get('x-model'), 'stream reports model');
+  const text = await r.text();
+  ok(text.includes('thought') && text.includes('Hi there'), 'stream passes SSE body through (thoughts + answer)');
+  const aliceTok = await loginAs(env, 'alice');
+  ok((await worker.fetch(req('POST', '/ai/stream', { prompt: 'hi' }, aliceTok), env)).status === 403, 'stream gated for pending user');
+}
+
+// --- streaming BESTMODEL fallback ---
+{
+  const env = baseEnv(); env.AI_MODEL = 'BESTMODEL';
+  const adminTok = await loginAs(env, 'feddedz');
+  OVERLOADED = new Set(['gemini-3.8-flash']);
+  const r = await worker.fetch(req('POST', '/ai/stream', { prompt: 'hi' }, adminTok), env);
+  ok(r.status === 200 && r.headers.get('x-model') === 'gemini-3.7-flash', 'stream falls back past an overloaded model (' + r.headers.get('x-model') + ')');
   OVERLOADED = new Set();
 }
 

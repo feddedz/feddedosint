@@ -82,6 +82,49 @@ export const adminSetUser = (login, patch) => api('/admin/user', { method: 'POST
 
 // ---------- AI + fetch ----------
 export const aiChat = payload => api('/ai/chat', { method: 'POST', auth: true, body: payload, timeout: 60000 });
+
+// Streaming chat. Calls onThought(delta) and onText(delta, full) as tokens arrive.
+// Returns the full answer. Pass an AbortSignal to stop it.
+export async function aiStream(payload, { onThought, onText, signal } = {}) {
+  const base = backendURL();
+  if (!base) throw new Error('no backend configured');
+  const res = await fetch(base + '/ai/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(authToken() ? { Authorization: 'Bearer ' + authToken() } : {}) },
+    body: JSON.stringify(payload),
+    signal,
+  });
+  const ct = res.headers.get('content-type') || '';
+  if (!res.ok || !ct.includes('text/event-stream')) {
+    let data = {};
+    try { data = await res.json(); } catch {}
+    if (res.status === 401) setSession(null);
+    throw new Error(data.error || `AI error ${res.status}`);
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', answer = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n\n')) >= 0) {
+      const line = buf.slice(0, i).split('\n').find(l => l.startsWith('data:'));
+      buf = buf.slice(i + 2);
+      if (!line) continue;
+      const raw = line.slice(5).trim();
+      if (!raw || raw === '[DONE]') continue;
+      let obj; try { obj = JSON.parse(raw); } catch { continue; }
+      for (const p of obj.candidates?.[0]?.content?.parts || []) {
+        if (!p.text) continue;
+        if (p.thought) onThought?.(p.text);
+        else { answer += p.text; onText?.(p.text, answer); }
+      }
+    }
+  }
+  return answer;
+}
 export const fetchUrl = url => api('/fetch', { method: 'POST', auth: true, body: { url }, timeout: 20000 });
 export const aiAvailable = async () => backendConfigured() && !!(await health())?.ai;
 

@@ -936,3 +936,23 @@ button.primary:disabled { opacity: .5; cursor: default; }
 .avatar-lg { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; background: var(--inset-2); }
 .admintable td { vertical-align: middle; }
 .admintable .row { gap: 6px; flex-wrap: wrap; }
+
+/* chat: streaming thoughts + stop + busy indicator */
+.thoughts { margin-bottom: 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--inset); overflow: hidden; }
+.thoughts > summary { display: flex; align-items: center; gap: 6px; padding: 7px 10px; cursor: pointer; list-style: none; }
+.thoughts > summary::-webkit-details-marker { display: none; }
+.thoughts .ico svg { width: 13px; height: 13px; color: var(--muted); }
+.thoughts.live > summary span:last-child { animation: pulse 1.4s ease-in-out infinite; }
+.thoughttext { padding: 0 11px 10px; font-size: 12px; line-height: 1.5; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; }
+@keyframes pulse { 50% { opacity: .5; } }
+
+.streamfoot { margin-top: 8px; }
+.stopbtn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 11.5px; color: var(--muted); background: var(--panel-solid); border: 1px solid var(--line-strong); border-radius: 8px; padding: 4px 11px; cursor: pointer; }
+.stopbtn:hover { color: var(--text); }
+.stopbtn .ico svg { width: 12px; height: 12px; }
+.bubble.streaming { border-color: var(--line-strong); }
+
+/* a running request shows a pulsing dot on the chat nav item */
+.navitem.busy { position: relative; }
+.navitem.busy::after { content: ''; position: absolute; right: 8px; top: 50%; width: 7px; height: 7px; margin-top: -3px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1.1s ease-in-out infinite; }
+body.rail .navitem.busy::after { right: 6px; top: 8px; margin-top: 0; }

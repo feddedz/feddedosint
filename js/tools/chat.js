@@ -14,18 +14,38 @@ domain, IP, email, URL, hash or CVE, write it plainly so the interface can link 
 Only assist with lawful, ethical, public-source investigation; never help access private systems,
 crack credentials, or de-anonymise or harass a private individual.`;
 
-// The F/O mark, used as the assistant avatar.
 const MARK = `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="26" fill="#0a0a0c"/><path d="M60 24 L40 80" stroke="#3a3a40" stroke-width="5" stroke-linecap="round"/><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="9"><path d="M30 28 V72 M30 28 H52 M30 49 H48" stroke="#f3f3f4"/><circle cx="66" cy="58" r="15" stroke="#6f6f77"/></g></svg>`;
 
-// Conversation + UI state persist while the tab is open.
-let history = [];
+// ---- state (persists while the tab is open; the request keeps running in the background) ----
+let history = [];       // { id, role, text, thoughts? }
 let nextId = 1;
 const pinned = new Set();
 let autoSpeak = false;
+let active = null;      // in-flight stream: { id, controller, thoughts, answer }
+let view = null;        // { log, render } for the currently mounted chat
 
 const synth = typeof speechSynthesis !== 'undefined' ? speechSynthesis : null;
 let speakingId = null;
-const stripMd = t => t.replace(/```[\s\S]*?```/g, ' code block ').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[#*`_>|]/g, '').replace(/\n{2,}/g, '. ').replace(/\s+/g, ' ').trim();
+
+const stripMd = t => (t || '').replace(/```[\s\S]*?```/g, ' code block ').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[#*`_>|]/g, '').replace(/\n{2,}/g, '. ').replace(/\s+/g, ' ').trim();
+const spanIcon = ic => { const s = h('span', { class: 'ico' }); s.innerHTML = icon(ic); return s; };
+
+function renderIfMounted() { if (view?.log?.isConnected) view.render(); }
+let rafPending = false;
+function scheduleRender() { if (rafPending) return; rafPending = true; requestAnimationFrame(() => { rafPending = false; renderIfMounted(); }); }
+function busy(on) { document.querySelector('.navitem[data-tool="chat"]')?.classList.toggle('busy', on); }
+
+function speak(id, text) {
+  if (!synth) return;
+  synth.cancel();
+  if (speakingId === id) { speakingId = null; renderIfMounted(); return; }
+  const u = new SpeechSynthesisUtterance(stripMd(text));
+  u.rate = 1.02;
+  u.onend = u.onerror = () => { if (speakingId === id) { speakingId = null; renderIfMounted(); } };
+  speakingId = id;
+  try { synth.speak(u); } catch { speakingId = null; }
+  renderIfMounted();
+}
 
 function contextBlock() {
   const g = graph(), c = getCase();
@@ -46,6 +66,91 @@ function entityChips(text) {
   return h('div', { class: 'chipflow' }, h('span', { class: 'muted small' }, 'open'), ...rows.slice(0, 16));
 }
 
+const avatarEl = role => {
+  const a = h('div', { class: 'msg-av ' + role });
+  if (role === 'assistant') a.innerHTML = MARK;
+  else { const u = currentUser(); if (u?.avatar) a.append(h('img', { src: u.avatar, alt: '', referrerpolicy: 'no-referrer' })); else a.textContent = (u?.login || 'you')[0].toUpperCase(); }
+  return a;
+};
+
+function iconBtn(ic, title, on, activeState) {
+  const b = h('button', { class: 'msgbtn' + (activeState ? ' active' : ''), type: 'button', title });
+  b.innerHTML = icon(ic);
+  b.addEventListener('click', on);
+  return b;
+}
+
+function thoughtsBlock(text, live) {
+  return h('details', { class: 'thoughts' + (live ? ' live' : ''), ...(live ? { open: true } : {}) },
+    h('summary', {}, spanIcon('wand'), h('span', { class: 'muted small' }, live ? 'thinking…' : 'thought process')),
+    h('div', { class: 'thoughttext' }, text));
+}
+
+function msgNode(m, flash) {
+  const body = [];
+  if (m.role === 'assistant') {
+    if (m.thoughts) body.push(thoughtsBlock(m.thoughts, false));
+    body.push(mdLite(m.text));
+  } else {
+    body.push(h('div', { class: 'plain' }, m.text));
+  }
+  const tools = h('div', { class: 'msgtools' },
+    iconBtn('copy', 'copy', async () => { try { await navigator.clipboard.writeText(m.text); } catch {} }),
+    iconBtn('pin', pinned.has(m.id) ? 'unpin' : 'pin', () => { pinned.has(m.id) ? pinned.delete(m.id) : pinned.add(m.id); renderIfMounted(); }, pinned.has(m.id)),
+    synth && m.role === 'assistant' ? iconBtn(speakingId === m.id ? 'stop' : 'speaker', 'read aloud', () => speak(m.id, m.text), speakingId === m.id) : null);
+  const bubble = h('div', { class: 'bubble' }, ...body, tools);
+  const col = h('div', { class: 'msg-main' }, bubble);
+  if (m.role === 'assistant') { const chips = entityChips(m.text); if (chips) col.append(chips); }
+  const node = h('div', { class: 'msg ' + m.role + (flash ? ' flashmsg' : '') }, avatarEl(m.role), col);
+  node.dataset.mid = m.id;
+  return node;
+}
+
+function streamingNode() {
+  const body = [];
+  if (active.thoughts) body.push(thoughtsBlock(active.thoughts, true));
+  if (active.answer) body.push(mdLite(active.answer));
+  else if (!active.thoughts) body.push(h('div', { class: 'typing' }, h('span'), h('span'), h('span')));
+  const stop = h('button', { class: 'stopbtn', type: 'button' }, spanIcon('stop'), h('span', {}, 'stop'));
+  stop.onclick = () => active?.controller.abort();
+  const bubble = h('div', { class: 'bubble streaming' }, ...body, h('div', { class: 'streamfoot' }, stop));
+  return h('div', { class: 'msg assistant' }, avatarEl('assistant'), h('div', { class: 'msg-main' }, bubble));
+}
+
+// ---- streaming send (runs independent of the DOM so it survives tab switches) ----
+async function startSend(text) {
+  text = (text || '').trim();
+  if (!text || active) return;
+  history.push({ id: nextId++, role: 'user', text });
+  active = { id: nextId++, controller: new AbortController(), thoughts: '', answer: '' };
+  busy(true);
+  renderIfMounted();
+  try {
+    const ctx = contextBlock();
+    const system = SYSTEM + (ctx ? `\n\nCurrent investigation context:\n${ctx}` : '');
+    const answer = await be.aiStream(
+      { system, messages: ai.toContents(history), temperature: 0.5, maxOutputTokens: 1800 },
+      {
+        signal: active.controller.signal,
+        onThought: d => { active.thoughts += d; scheduleRender(); },
+        onText: (d, full) => { active.answer = full; scheduleRender(); },
+      });
+    history.push({ id: active.id, role: 'assistant', text: answer || active.answer || '(no reply)', thoughts: active.thoughts });
+    if (autoSpeak && (answer || active.answer)) { const id = active.id; setTimeout(() => speak(id, answer || ''), 100); }
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      const partial = active.answer.trim();
+      history.push({ id: active.id, role: 'assistant', text: (partial ? partial + '\n\n' : '') + '_(stopped)_', thoughts: active.thoughts });
+    } else {
+      history.push({ id: active.id, role: 'assistant', text: '⚠ ' + (e.message || 'request failed'), thoughts: active.thoughts });
+    }
+  } finally {
+    active = null;
+    busy(false);
+    renderIfMounted();
+  }
+}
+
 export default {
   id: 'chat',
   label: 'chat',
@@ -59,7 +164,7 @@ export default {
   async run() {
     if (!be.backendConfigured()) {
       return card('ai not set up', { wide: true },
-        muted('The chat uses your Gemini key through the Cloudflare Worker, so the key is never exposed in the browser.'),
+        muted('The chat uses the Gemini key through the Worker, so the key is never exposed in the browser.'),
         h('p', {}, 'Add your Worker URL in ', pivot('settings', 'backend', 'Settings'), ' and sign in on the ', pivot('account', '', 'account'), ' tab.'));
     }
     const info = await be.health(true);
@@ -71,107 +176,38 @@ export default {
     const pinStrip = h('div', { class: 'pinstrip' });
     const ta = h('textarea', { class: 'chatinput', rows: 1, placeholder: 'ask anything — Enter to send, Shift+Enter for a new line', spellcheck: 'false' });
 
-    // ---- text to speech ----
-    const speak = (id, text) => {
-      if (!synth) return;
-      synth.cancel();
-      if (speakingId === id) { speakingId = null; renderLog(); return; }
-      const u = new SpeechSynthesisUtterance(stripMd(text));
-      u.rate = 1.02;
-      u.onend = u.onerror = () => { if (speakingId === id) { speakingId = null; renderLog(); } };
-      speakingId = id;
-      try { synth.speak(u); } catch { speakingId = null; }
-      renderLog();
-    };
-
-    const iconBtn = (ic, title, on, active) => {
-      const b = h('button', { class: 'msgbtn' + (active ? ' active' : ''), type: 'button', title });
-      b.innerHTML = icon(ic);
-      b.addEventListener('click', on);
-      return b;
-    };
-
-    function msgNode(m) {
-      const avatar = h('div', { class: 'msg-av ' + m.role });
-      if (m.role === 'assistant') avatar.innerHTML = MARK;
-      else { const u = currentUser(); if (u?.avatar) avatar.append(h('img', { src: u.avatar, alt: '', referrerpolicy: 'no-referrer' })); else avatar.textContent = (u?.login || 'you')[0].toUpperCase(); }
-
-      const body = m.role === 'assistant' ? mdLite(m.text) : h('div', { class: 'plain' }, m.text);
-      const tools = h('div', { class: 'msgtools' },
-        iconBtn('copy', 'copy', async () => { try { await navigator.clipboard.writeText(m.text); flash('copied'); } catch {} }),
-        iconBtn('pin', pinned.has(m.id) ? 'unpin' : 'pin', () => { pinned.has(m.id) ? pinned.delete(m.id) : pinned.add(m.id); renderLog(); }, pinned.has(m.id)),
-        synth && m.role === 'assistant' ? iconBtn(speakingId === m.id ? 'stop' : 'speaker', 'read aloud', () => speak(m.id, m.text), speakingId === m.id) : null);
-
-      const bubble = h('div', { class: 'bubble' }, body, tools);
-      const col = h('div', { class: 'msg-main' }, bubble);
-      if (m.role === 'assistant') { const chips = entityChips(m.text); if (chips) col.append(chips); }
-      return h('div', { class: 'msg ' + m.role }, avatar, col);
-    }
-
-    function renderLog() {
-      // pinned strip
+    function render() {
       const pins = history.filter(m => pinned.has(m.id));
       pinStrip.replaceChildren(...(pins.length ? [
         h('div', { class: 'pinhead muted small' }, spanIcon('pin'), ` ${pins.length} pinned`),
         h('div', { class: 'pinitems' }, pins.map(m => {
-          const chip = h('button', { class: 'pinchip', type: 'button', title: 'jump to message' }, (m.role === 'assistant' ? '◆ ' : 'you: ') + stripMd(m.text).slice(0, 70));
+          const chip = h('button', { class: 'pinchip', type: 'button' }, (m.role === 'assistant' ? '◆ ' : 'you: ') + stripMd(m.text).slice(0, 70));
           chip.onclick = () => { const el = log.querySelector(`[data-mid="${m.id}"]`); el?.scrollIntoView({ behavior: 'smooth', block: 'center' }); el?.classList.add('flashmsg'); setTimeout(() => el?.classList.remove('flashmsg'), 1200); };
           return chip;
         })),
       ] : []));
       pinStrip.classList.toggle('on', pins.length > 0);
 
-      if (!history.length) { log.replaceChildren(emptyState()); return; }
-      log.replaceChildren(...history.map(m => { const n = msgNode(m); n.dataset.mid = m.id; return n; }));
-      if (pendingNode) log.append(pendingNode);
-      log.scrollTop = log.scrollHeight;
+      if (!history.length && !active) { log.replaceChildren(emptyState()); return; }
+      const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+      log.replaceChildren(...history.map(m => msgNode(m)));
+      if (active) log.append(streamingNode());
+      if (nearBottom) log.scrollTop = log.scrollHeight;
     }
-
-    let pendingNode = null;
-    const spanIcon = ic => { const s = h('span', { class: 'ico' }); s.innerHTML = icon(ic); return s; };
-    const toast = h('div', { class: 'chattoast' });
-    const flash = msg => { toast.textContent = msg; toast.classList.add('on'); setTimeout(() => toast.classList.remove('on'), 1100); };
-
-    // ---- send ----
-    async function send(text) {
-      text = (text ?? ta.value).trim();
-      if (!text || sendBtn.disabled) return;
-      ta.value = ''; autoGrow();
-      const m = { id: nextId++, role: 'user', text };
-      history.push(m);
-      renderLog();
-      sendBtn.disabled = true;
-      pendingNode = h('div', { class: 'msg assistant' }, (() => { const a = h('div', { class: 'msg-av assistant' }); a.innerHTML = MARK; return a; })(),
-        h('div', { class: 'msg-main' }, h('div', { class: 'bubble' }, h('div', { class: 'typing' }, h('span'), h('span'), h('span')))));
-      log.append(pendingNode); log.scrollTop = log.scrollHeight;
-      try {
-        const ctx = contextBlock();
-        const system = SYSTEM + (ctx ? `\n\nCurrent investigation context:\n${ctx}` : '');
-        const reply = await ai.ask({ system, messages: ai.toContents(history), temperature: 0.5, maxOutputTokens: 1800 });
-        const am = { id: nextId++, role: 'assistant', text: reply || '(no reply)' };
-        history.push(am);
-        if (autoSpeak && reply) setTimeout(() => speak(am.id, reply), 120);
-      } catch (e) {
-        history.push({ id: nextId++, role: 'assistant', text: '⚠ ' + (e.message || 'request failed') });
-      } finally {
-        pendingNode = null;
-        sendBtn.disabled = false;
-        renderLog();
-        ta.focus();
-      }
-    }
+    view = { log, render };
 
     // ---- actions menu ----
     const fill = prefix => { ta.value = prefix; autoGrow(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); menu.classList.remove('open'); };
-    const act = text => { menu.classList.remove('open'); send(text); };
+    const act = text => { menu.classList.remove('open'); startSend(text); };
+    const flash = (() => { const t = h('div', { class: 'chattoast' }); return { el: t, show: msg => { t.textContent = msg; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1100); } }; })();
     function addMentioned() {
       const last = [...history].reverse().find(m => m.role === 'assistant');
-      if (!last) return flash('nothing to add');
+      menu.classList.remove('open');
+      if (!last) return flash.show('nothing to add');
       const ents = extractEntities(last.text, 60);
       let n = 0;
       for (const k of KINDS) for (const v of ents[k.id] || []) { trackNode(k.tool, v); n++; }
-      flash(n ? `added ${n} to graph` : 'no entities found');
-      menu.classList.remove('open');
+      flash.show(n ? `added ${n} to graph` : 'no entities found');
     }
     function exportChat() {
       const md = history.map(m => `**${m.role === 'assistant' ? 'assistant' : 'you'}:**\n\n${m.text}`).join('\n\n---\n\n');
@@ -204,19 +240,13 @@ export default {
         { icon: 'graph', label: 'add mentioned to graph', run: addMentioned },
         { icon: 'export', label: 'export chat (.md)', run: exportChat },
         { icon: 'speaker', label: 'read last reply', run: () => { const m = [...history].reverse().find(x => x.role === 'assistant'); menu.classList.remove('open'); if (m) speak(m.id, m.text); } },
-        { icon: 'trash', label: 'clear chat', run: () => { history = []; pinned.clear(); menu.classList.remove('open'); renderLog(); } },
+        { icon: 'trash', label: 'clear chat', run: () => { if (active) active.controller.abort(); history = []; pinned.clear(); menu.classList.remove('open'); render(); } },
       ] },
     ];
     const menu = h('div', { class: 'actionmenu' }, ACTIONS.map(grp => h('div', { class: 'actgroup' },
       h('div', { class: 'acthead muted small' }, grp.group),
-      h('div', { class: 'actitems' }, grp.items.map(it => {
-        const b = h('button', { class: 'actitem', type: 'button' });
-        b.innerHTML = icon(it.icon) + `<span>${it.label}</span>`;
-        b.addEventListener('click', it.run);
-        return b;
-      })))));
+      h('div', { class: 'actitems' }, grp.items.map(it => { const b = h('button', { class: 'actitem', type: 'button' }); b.innerHTML = icon(it.icon) + `<span>${it.label}</span>`; b.addEventListener('click', it.run); return b; })))));
 
-    // ---- bar controls ----
     const actionsBtn = h('button', { class: 'barbtn', type: 'button', title: 'actions' });
     actionsBtn.innerHTML = icon('wand') + '<span>actions</span>';
     actionsBtn.onclick = e => { e.stopPropagation(); menu.classList.toggle('open'); };
@@ -231,21 +261,22 @@ export default {
 
     const sendBtn = h('button', { class: 'primary sendbtn', type: 'button' });
     sendBtn.innerHTML = icon('pivot') + '<span>send</span>';
-    sendBtn.onclick = () => send();
+    const doSend = () => { const t = ta.value.trim(); if (!t || active) return; ta.value = ''; autoGrow(); startSend(t); };
+    sendBtn.onclick = doSend;
 
     function autoGrow() { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 180) + 'px'; }
     ta.addEventListener('input', autoGrow);
-    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); } });
 
     function emptyState() {
       const SUGGEST = ['Plan an investigation of github.com', 'What do SPF, DKIM and DMARC tell me?', 'Summarise my investigation graph', 'Draft a report from my current case'];
       return h('div', { class: 'chatempty' },
         h('div', { class: 'welcome' }, (() => { const a = h('div', { class: 'welcome-av' }); a.innerHTML = MARK; return a; })(),
-          h('div', {}, h('strong', {}, `Hi ${currentUser()?.login || ''} 👋`), muted('I can see your investigation graph and notes. Ask me to plan, interpret or pivot — or use the actions menu.'))),
-        h('div', { class: 'chipflow' }, ...SUGGEST.map(s => { const b = h('button', { class: 'suggchip', type: 'button' }, s); b.onclick = () => send(s); return b; })));
+          h('div', {}, h('strong', {}, `Hi ${currentUser()?.login || ''} 👋`), muted('I can see your investigation graph and notes, I stream my thinking live, and I keep working if you switch tabs. Use the actions menu for shortcuts.'))),
+        h('div', { class: 'chipflow' }, ...SUGGEST.map(s => { const b = h('button', { class: 'suggchip', type: 'button' }, s); b.onclick = () => startSend(s); return b; })));
     }
 
-    renderLog();
+    render();
     autoGrow();
     return h('div', { class: 'chatwrap' },
       pinStrip,
@@ -253,6 +284,6 @@ export default {
       h('div', { class: 'chatbar' },
         h('div', { class: 'barrow' }, h('div', { class: 'barleft' }, actionsBtn, speakToggle, menu), badge(info.model || 'ai', 'muted')),
         h('div', { class: 'inputrow' }, ta, sendBtn)),
-      toast);
+      flash.el);
   },
 };
