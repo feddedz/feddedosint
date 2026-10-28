@@ -23,6 +23,20 @@ const P = {
   export: '<path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M5 18h14"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/>',
   external: '<path d="M14 5h5v5"/><path d="M19 5l-8 8"/><path d="M18 13v5a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h5"/>',
+  url: '<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>',
+  mac: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM10 3v3M14 3v3M10 18v3M14 18v3M3 10h3M3 14h3M18 10h3M18 14h3"/>',
+  cidr: '<rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><rect x="13.5" y="13.5" width="7" height="7" rx="1" fill="currentColor" fill-opacity=".25"/>',
+  geo: '<path d="M12 21s-6.5-6.2-6.5-11.2a6.5 6.5 0 0113 0C18.5 14.8 12 21 12 21z"/><circle cx="12" cy="9.8" r="2.4"/>',
+  file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M10 12.5L8.5 14l1.5 1.5M14 12.5l1.5 1.5-1.5 1.5"/>',
+  headers: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9.5h10M7 12.5h7M7 15.5h4"/>',
+  extract: '<path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"/>',
+  case: '<path d="M3.5 7.5h17v11a1.5 1.5 0 01-1.5 1.5H5a1.5 1.5 0 01-1.5-1.5z"/><path d="M9 7.5v-2A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5v2M3.5 12.5h17"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  chevron: '<path d="M9 6l6 6-6 6"/>',
+  sidebar: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/>',
+  close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  collapse: '<path d="M7 10l5-5 5 5M7 19l5-5 5 5"/>',
+  expand: '<path d="M7 5l5 5 5-5M7 14l5 5 5-5"/>',
 };
 
 export function icon(id, cls = '') {

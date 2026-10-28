@@ -15,7 +15,7 @@ async function resolveASN(input) {
 
 export default {
   id: 'asn',
-  label: 'network',
+  label: 'asn',
   placeholder: 'AS number or IP (e.g. AS13335)',
   intro: 'Explore an autonomous system — who operates it, its address space (prefixes), peers and upstreams.',
   examples: ['AS13335', 'AS15169'],

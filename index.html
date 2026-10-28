@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>feddedosint</title>
-<meta name="description" content="Fast, private, client-side OSINT platform — identity, breach, domain, IP, ASN, wallet, CVE, records, decoders and a live investigation graph.">
+<meta name="description" content="Fast, private, client-side OSINT platform — identity, breach, domain, IP, ASN, URL, geo, maps, wallets, files, CVEs, headers, records, decoders and a live investigation graph.">
 <meta name="theme-color" content="#070708">
 <meta name="referrer" content="no-referrer">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23070708'/%3E%3Cg stroke='%23eee' stroke-width='7' stroke-linecap='round'%3E%3Cpath d='M50 18v64M22 34l56 32M22 66l56-32'/%3E%3C/g%3E%3C/svg%3E">
@@ -16,30 +16,57 @@
 <body>
 <canvas id="snow" aria-hidden="true"></canvas>
 
-<main>
-  <header class="top">
-    <h1><a href="#">fedded<span>osint</span></a></h1>
-    <p class="muted">open-source intelligence, entirely in your browser</p>
-  </header>
+<div class="app">
+  <aside id="side" class="side" aria-label="tools">
+    <div class="side-top">
+      <a class="brand" href="#"><span class="brand-full">fedded<span>osint</span></span><span class="brand-mark">f<span>o</span></span></a>
+      <div class="side-btns">
+        <button id="groupsToggle" class="iconbtn" type="button"></button>
+        <button id="railToggle" class="iconbtn" type="button" title="collapse sidebar"></button>
+      </div>
+    </div>
+    <button id="paletteBtn" class="palbtn" type="button" title="jump to (Ctrl K)"><span class="ico"></span><span class="navtext">jump to…</span><kbd class="navtext"></kbd></button>
+    <nav id="tabs"></nav>
+    <div class="side-foot"><span class="navtext muted small">client-side · no tracking</span></div>
+  </aside>
+  <div id="scrim" class="scrim"></div>
 
-  <nav id="tabs" role="tablist" aria-label="tools"></nav>
+  <div class="content">
+    <header class="mobilebar">
+      <button id="menuBtn" class="iconbtn" type="button" aria-label="open menu"></button>
+      <a class="brand" href="#">fedded<span>osint</span></a>
+      <button id="paletteBtnM" class="iconbtn" type="button" aria-label="jump to"></button>
+    </header>
 
-  <section class="panel">
-    <form id="search" autocomplete="off">
-      <input id="q" type="text" spellcheck="false" autocapitalize="off" aria-label="search" autofocus>
-      <button type="submit">search</button>
-    </form>
-    <div id="hint" class="hint"></div>
-    <div id="recent" class="recent"></div>
-  </section>
+    <main>
+      <section id="toolhead" class="toolhead" aria-live="polite"></section>
 
-  <div id="out" aria-live="polite"></div>
+      <section class="panel">
+        <form id="search" autocomplete="off">
+          <input id="q" type="text" spellcheck="false" autocapitalize="off" aria-label="search" autofocus>
+          <button type="submit">search</button>
+        </form>
+        <div id="hint" class="hint"></div>
+        <div id="recent" class="recent"></div>
+      </section>
 
-  <footer class="muted">
-    <p>No backend, no tracking — queries go straight from your browser to the public services listed in each result.</p>
-    <p>For lawful, ethical research only. Respect privacy and each site's terms. Press <kbd>/</kbd> to search.</p>
-  </footer>
-</main>
+      <div id="out" aria-live="polite"></div>
+
+      <footer class="muted">
+        <p>No backend, no tracking — queries go straight from your browser to the public services shown in each result.</p>
+        <p>For lawful, ethical research only. <kbd>/</kbd> search · <kbd>Ctrl K</kbd> jump · click a card title to fold it.</p>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<div id="palette" class="palette" hidden>
+  <div class="palbox" role="dialog" aria-label="jump to">
+    <input id="palinput" type="text" placeholder="jump to a tool, or type anything to search…" autocomplete="off" spellcheck="false">
+    <div id="pallist" class="pallist"></div>
+    <div class="palfoot muted small">↑ ↓ navigate · enter open · esc close</div>
+  </div>
+</div>
 
 <noscript><p class="error">feddedosint needs JavaScript enabled.</p></noscript>
 <script type="module" src="js/app.js"></script>

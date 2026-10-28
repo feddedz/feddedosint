@@ -8,21 +8,32 @@ import crypto from './crypto.js';
 import cve from './cve.js';
 import breach from './breach.js';
 import asn from './asn.js';
+import url from './url.js';
+import mac from './mac.js';
+import cidr from './cidr.js';
+import geo from './geo.js';
+import file from './file.js';
+import map from './map.js';
 
-const TOOLS = { domain, ip, email, username, phone, crypto, cve, breach, asn };
+const TOOLS = { domain, ip, email, username, phone, crypto, cve, breach, asn, url, mac, cidr, geo, file, map };
 
 // Decide the most likely entity types for an input, best guess first.
 export function classify(v) {
   v = v.trim();
   const out = [];
+  const bare = v.replace(/^\[|\]$/g, '');
   if (/^CVE-\d{4}-\d{4,}$/i.test(v)) out.push('cve');
   if (/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v)) out.push('email', 'breach');
   if (/^(bc1[0-9a-z]{20,80}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|0x[0-9a-fA-F]{40})$/.test(v)) out.push('crypto');
-  if (isIP(v.replace(/^\[|\]$/g, ''))) out.push('ip', 'asn');
+  if (/^([0-9a-f]{2}[:-]){5}[0-9a-f]{2}$|^[0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}$/i.test(v)) out.push('mac');
+  if (/^[0-9a-f.:]+\/\d{1,3}$/i.test(v)) out.push('cidr', 'asn');
+  if (isIP(bare)) out.push('ip', 'asn', 'map');
+  if (/^-?\d{1,2}(\.\d+)?\s*,\s*-?\d{1,3}(\.\d+)?$/.test(v) || /°.*[NS].*°.*[EW]/i.test(v)) out.push('geo');
   if (/^(as)?\d{2,10}$/i.test(v) && !isIP(v)) out.push('asn');
+  if (/^([a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64}|[a-f0-9]{128})$/i.test(v)) out.push('file');
   if (/^\+?[\d\s().-]{7,}$/.test(v) && v.replace(/\D/g, '').length >= 7 && !/^\d{1,10}$/.test(v.replace(/\D/g, ''))) out.push('phone');
-  if (/^https?:\/\//i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v)) out.push('domain');
-  if (/^@?[a-z0-9._-]{2,30}$/i.test(v) && !v.includes('.')) out.push('username');
+  if (/^https?:\/\/[^/]+\/./i.test(v) || /^https?:\/\/[^/]+\/?\?/i.test(v)) out.push('url');
+  if (!isIP(bare) && (/^https?:\/\//i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v))) out.push('domain', 'map');
   if (!out.length) out.push('username');
   return [...new Set(out)];
 }
@@ -44,7 +55,7 @@ export default {
     const banner = h('div', { class: 'detect' },
       h('span', { class: 'muted small' }, 'detected as'), badge(tool.label, 'ok'),
       types.length > 1 ? [h('span', { class: 'muted small' }, 'also try') ,
-        ...types.slice(1).map(t => h('a', { class: 'chip', href: `#${t}/${encodeURIComponent(v)}` }, TOOLS[t].label))] : null,
+        ...types.slice(1).filter(t => TOOLS[t]).map(t => h('a', { class: 'chip', href: `#${t}/${encodeURIComponent(v)}` }, TOOLS[t].label))] : null,
       h('a', { class: 'chip', href: `#dorks/${encodeURIComponent(v)}` }, 'search engines'));
 
     try {

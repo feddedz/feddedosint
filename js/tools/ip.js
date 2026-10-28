@@ -2,6 +2,7 @@ import {
   h, getJSON, dns, isIP, isIPv4, reverseName, card, asyncCard, kv, ext, pivot, linkGroups, grid, muted,
   vcard, rdapEntity, rdapEvent, fmtDate, flag,
 } from '../util.js';
+import { getKey, hasKey } from '../store.js';
 
 const PRIVATE = [
   [/^10\./, 'private (RFC 1918)'], [/^192\.168\./, 'private (RFC 1918)'], [/^172\.(1[6-9]|2\d|3[01])\./, 'private (RFC 1918)'],
@@ -47,7 +48,7 @@ export default {
           kv([
             ['ip', h('span', { class: 'mono' }, g.ip, ' ', h('span', { class: 'muted' }, g.type))],
             ['location', [flag(g.country_code), [g.city, g.region, g.country].filter(Boolean).join(', ')].join(' ')],
-            ['coordinates', g.latitude != null && ext(`https://www.google.com/maps?q=${g.latitude},${g.longitude}`, `${g.latitude}, ${g.longitude}`)],
+            ['coordinates', g.latitude != null && pivot('geo', `${g.latitude},${g.longitude}`, `${g.latitude}, ${g.longitude}`)],
             ['postal', g.postal],
             ['timezone', g.timezone?.id && `${g.timezone.id} (UTC${g.timezone.utc})`],
             ['asn', c.asn && ext(`https://bgp.he.net/AS${c.asn}`, `AS${c.asn}`)],
@@ -82,6 +83,39 @@ export default {
             ext(`https://nvd.nist.gov/vuln/detail/${v}`, v))) : null],
         ]);
       }),
+
+      // Richer data when the user has saved their own keys in Settings.
+      hasKey('shodan') ? asyncCard('shodan host', async () => {
+        const r = await getJSON(`https://api.shodan.io/shodan/host/${enc}?key=${encodeURIComponent(getKey('shodan'))}&minify=true`);
+        if (r.status === 404) return muted('Shodan has no data on this host.');
+        if (r.status === 401 || r.status === 403) throw new Error('Shodan rejected the key — check it in Settings');
+        if (!r.ok || !r.data) throw new Error(`HTTP ${r.status}`);
+        const x = r.data;
+        return kv([
+          ['organization', x.org], ['isp', x.isp], ['os', x.os],
+          ['ports', (x.ports || []).length ? h('div', { class: 'tags' }, x.ports.map(p => h('span', { class: 'tag' }, String(p)))) : null],
+          ['hostnames', (x.hostnames || []).map(n => h('div', {}, pivot('domain', n)))],
+          ['domains', (x.domains || []).map(n => h('div', {}, pivot('domain', n)))],
+          ['tags', (x.tags || []).join(', ')],
+          ['vulns', (x.vulns || []).length ? h('div', { class: 'tags' }, x.vulns.slice(0, 30).map(v => pivot('cve', v))) : null],
+          ['last seen', x.last_update?.slice(0, 10)],
+        ]);
+      }) : null,
+
+      hasKey('ipinfo') ? asyncCard('ipinfo', async () => {
+        const r = await getJSON(`https://ipinfo.io/${enc}/json?token=${encodeURIComponent(getKey('ipinfo'))}`);
+        if (r.status === 401 || r.status === 403) throw new Error('IPinfo rejected the token — check it in Settings');
+        if (!r.ok || !r.data) throw new Error(`HTTP ${r.status}`);
+        const x = r.data;
+        return kv([
+          ['hostname', x.hostname && pivot('domain', x.hostname)],
+          ['location', [x.city, x.region, x.country].filter(Boolean).join(', ')],
+          ['coordinates', x.loc && pivot('geo', x.loc)],
+          ['org', x.org], ['postal', x.postal], ['timezone', x.timezone],
+          ['anycast', x.anycast ? 'yes' : null],
+          ['privacy', x.privacy ? Object.entries(x.privacy).filter(([, v]) => v === true).map(([k]) => k).join(', ') || 'none detected' : null],
+        ]);
+      }) : null,
 
       asyncCard('ownership (rdap)', async () => {
         const r = await getJSON(`https://rdap.org/ip/${enc}`);

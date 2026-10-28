@@ -1,5 +1,7 @@
 // Shared helpers: DOM building, fetching, DNS-over-HTTPS and common UI blocks.
 
+import { iconEl } from './icons.js';
+
 // h('a', {href, class, onclick}, ...children) — children may be strings, nodes, arrays or null.
 export function h(tag, attrs = {}, ...children) {
   const el = document.createElement(tag);
@@ -159,7 +161,7 @@ export const fmtDate = d => {
 
 export const fmtNum = n => (typeof n === 'number' ? n.toLocaleString('en-US') : n);
 
-// ---------- lazy script loading (pinned + SRI) ----------
+// ---------- lazy script / style loading (pinned + SRI) ----------
 
 const loaded = {};
 export function loadScript(src, integrity) {
@@ -170,6 +172,39 @@ export function loadScript(src, integrity) {
     document.head.append(s);
   });
   return loaded[src];
+}
+
+export function loadStyle(href, integrity) {
+  loaded[href] ||= new Promise((resolve, reject) => {
+    const l = h('link', { rel: 'stylesheet', href, integrity, crossorigin: 'anonymous' });
+    l.onload = resolve;
+    l.onerror = () => { delete loaded[href]; reject(new Error('could not load ' + href)); };
+    document.head.append(l);
+  });
+  return loaded[href];
+}
+
+// ---------- indicators ----------
+
+// Defang / refang indicators of compromise, the way analysts share them safely.
+export const defang = s => s.replace(/\./g, '[.]').replace(/:\/\//g, '[://]').replace(/^http/i, 'hxxp').replace(/@/g, '[@]');
+export const refang = s => s
+  .replace(/\[\.\]|\(\.\)|\{\.\}|\[dot\]|\(dot\)/gi, '.')
+  .replace(/\[:\/\/\]|\(:\/\/\)|\[:\]\/\//g, '://')
+  .replace(/\bhxxp/gi, 'http')
+  .replace(/\[@\]|\(@\)|\[at\]|\(at\)/gi, '@');
+
+// Approximate registrable domain (eTLD+1) without shipping the full public-suffix list.
+const SECOND_LEVEL = new Set(['co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'me.uk', 'ltd.uk', 'plc.uk', 'com.au', 'net.au', 'org.au',
+  'edu.au', 'gov.au', 'co.nz', 'org.nz', 'co.jp', 'ne.jp', 'or.jp', 'com.br', 'net.br', 'org.br', 'com.cn', 'net.cn', 'org.cn',
+  'co.in', 'net.in', 'org.in', 'com.mx', 'com.tr', 'com.sg', 'com.hk', 'co.za', 'co.kr', 'com.ar', 'com.tw', 'co.il', 'com.my',
+  'com.ph', 'com.pk', 'com.ng', 'com.eg', 'com.sa', 'co.id', 'co.th', 'com.vn', 'com.ua', 'com.pl', 'github.io', 'gitlab.io',
+  'pages.dev', 'netlify.app', 'vercel.app', 'herokuapp.com', 'blogspot.com', 'appspot.com', 'web.app', 'firebaseapp.com']);
+export function registrable(host) {
+  const parts = host.toLowerCase().split('.');
+  if (parts.length <= 2) return host.toLowerCase();
+  const last2 = parts.slice(-2).join('.');
+  return SECOND_LEVEL.has(last2) ? parts.slice(-3).join('.') : last2;
 }
 
 // ---------- UI blocks ----------
@@ -211,10 +246,19 @@ export const confidence = level => {
 // A short note line used as a card caption.
 export const note = text => h('p', { class: 'muted small' }, text);
 
-export function card(title, { wide = false, actions } = {}, ...body) {
-  return h('article', { class: 'card' + (wide ? ' wide' : '') },
-    h('header', {}, h('h3', {}, title), actions ? h('div', { class: 'actions' }, actions) : null),
+// Every card can be collapsed by clicking its title.
+export function card(title, { wide = false, actions, collapsed = false } = {}, ...body) {
+  const el = h('article', { class: 'card' + (wide ? ' wide' : '') + (collapsed ? ' collapsed' : '') });
+  const toggle = h('button', { class: 'cardtoggle', type: 'button', 'aria-expanded': String(!collapsed) },
+    iconEl('chevron', 'chev'), h('span', {}, title));
+  toggle.addEventListener('click', () => {
+    const shut = el.classList.toggle('collapsed');
+    toggle.setAttribute('aria-expanded', String(!shut));
+  });
+  el.append(
+    h('header', {}, h('h3', {}, toggle), actions ? h('div', { class: 'actions' }, actions) : null),
     h('div', { class: 'body' }, ...body));
+  return el;
 }
 
 // A card that shows a spinner until `fn()` resolves to its body content.
@@ -234,7 +278,7 @@ export function asyncCard(title, fn, opts = {}) {
 
 // Key/value table. Rows with empty values are dropped.
 export function kv(rows) {
-  const kept = rows.filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && !v.length));
+  const kept = rows.filter(r => r && r[1] != null && r[1] !== '' && !(Array.isArray(r[1]) && !r[1].length));
   if (!kept.length) return h('p', { class: 'muted' }, 'nothing found');
   return h('dl', { class: 'kv' }, kept.map(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]));
 }

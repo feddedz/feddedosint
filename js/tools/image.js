@@ -1,4 +1,4 @@
-import { h, loadScript, sha256, card, kv, ext, linkGroups, grid, muted, copyBtn } from '../util.js';
+import { h, loadScript, sha256, card, kv, ext, pivot, linkGroups, grid, muted, copyBtn } from '../util.js';
 
 const LIB = 'https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js';
 const LIB_SRI = 'sha384-KrOocIA+lZcNUz2MDavnT/FuX+CbTREJihUi0bp8QUSwhE2AkGTNpv2b7yMbBkx5';
@@ -65,6 +65,7 @@ async function analyse(blob, name) {
     card('location', {},
       lat != null && lon != null ? [
         kv([['gps', h('span', { class: 'mono' }, `${lat.toFixed(6)}, ${lon.toFixed(6)}`)],
+          ['investigate', pivot('geo', `${lat.toFixed(6)},${lon.toFixed(6)}`, 'open in geo tool →')],
           ['open in', [ext(`https://www.google.com/maps?q=${lat},${lon}`, 'Google Maps'), ' · ',
             ext(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`, 'OpenStreetMap'), ' · ',
             ext(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`, 'Street View')]]]),
