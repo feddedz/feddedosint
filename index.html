@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>feddedosint</title>
+<meta name="description" content="Fast, private, client-side OSINT toolkit — usernames, domains, IPs, emails, phone numbers, images and search operators.">
+<meta name="theme-color" content="#070708">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23070708'/%3E%3Cg stroke='%23eee' stroke-width='7' stroke-linecap='round'%3E%3Cpath d='M50 18v64M22 34l56 32M22 66l56-32'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="snow" aria-hidden="true"></canvas>
+
+<main>
+  <header class="top">
+    <h1><a href="#">fedded<span>osint</span></a></h1>
+    <p class="muted">open-source intelligence, entirely in your browser</p>
+  </header>
+
+  <nav id="tabs" role="tablist" aria-label="tools"></nav>
+
+  <section class="panel">
+    <form id="search" autocomplete="off">
+      <input id="q" type="text" spellcheck="false" autocapitalize="off" aria-label="search" autofocus>
+      <button type="submit">search</button>
+    </form>
+    <div id="hint" class="hint"></div>
+    <div id="recent" class="recent"></div>
+  </section>
+
+  <div id="out" aria-live="polite"></div>
+
+  <footer class="muted">
+    <p>No backend, no tracking — queries go straight from your browser to the public services listed in each result.</p>
+    <p>For lawful, ethical research only. Respect privacy and each site's terms. Press <kbd>/</kbd> to search.</p>
+  </footer>
+</main>
+
+<noscript><p class="error">feddedosint needs JavaScript enabled.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
