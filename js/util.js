@@ -285,6 +285,15 @@ export function kv(rows) {
 
 export const muted = text => h('p', { class: 'muted' }, text);
 
+// A collapsed <details> holding the raw, unmodified API response — nothing hidden or reformatted away.
+export function rawJSON(obj, label = 'raw response') {
+  const text = (() => { try { return JSON.stringify(obj, null, 2); } catch { return String(obj); } })();
+  const pre = h('pre', { class: 'json' }, text);
+  return h('details', { class: 'rawbox' },
+    h('summary', {}, label, ' ', copyBtn(text, 'copy')),
+    pre);
+}
+
 // Grouped grid of external links: [{group, items: [[name, url], ...]}]
 export function linkGroups(groups) {
   return groups.map(g => h('div', { class: 'linkgroup' },

@@ -796,3 +796,8 @@ path.arc-dash { stroke-dasharray: 2 5; }
   .card.collapsed > .body { display: block; }
   a { color: #000; }
 }
+
+/* raw JSON disclosure */
+.rawbox { margin-top: 10px; }
+.rawbox > summary { display: flex; align-items: center; gap: 8px; }
+.rawbox pre.json { margin-top: 8px; max-height: 420px; }
