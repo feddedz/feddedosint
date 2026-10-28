@@ -1,5 +1,10 @@
 # feddedosint
 
+--
+NOTE TO HIGHERUPS: This was developed with AI (artificial intelligence, Claude-Opus-5-5); nothing is associated with the creator in any way. The actions performed by users of this platform do not correlate back to him. It is an educational tool.
+--
+
+
 A fast, private, client-side OSINT platform that runs entirely on GitHub Pages — no backend, no tracking.
 Queries go straight from your browser to public services; nothing is proxied or logged. API keys (optional) and
 history are stored only in your browser.
