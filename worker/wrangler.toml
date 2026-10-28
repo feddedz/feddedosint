@@ -11,7 +11,9 @@ id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
 [vars]
 # Exact Gemini model id. List valid ones:
 #   curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"
-AI_MODEL = "gemini-2.5-flash"
+# Set to "BESTMODEL" to auto-pick the best available model and fall back when one is busy,
+# or pin an exact id like "gemini-3.8-flash".
+AI_MODEL = "BESTMODEL"
 
 # Site origins allowed to call this Worker (comma-separated, no trailing slash).
 ALLOWED_ORIGINS = "https://feddedz.github.io,http://localhost:8000"

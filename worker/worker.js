@@ -162,7 +162,6 @@ async function handleAI(request, env, user) {
   if (!env.GEMINI_KEY) return err('the AI backend is not configured', 503, request, env);
 
   const body = await request.json().catch(() => ({}));
-  const model = env.AI_MODEL || 'gemini-2.5-flash';
   const generationConfig = {
     temperature: body.temperature ?? 0.4,
     maxOutputTokens: Math.min(body.maxOutputTokens || 2048, 8192),
@@ -179,24 +178,46 @@ async function handleAI(request, env, user) {
     ...(body.system ? { systemInstruction: { parts: [{ text: String(body.system) }] } } : {}),
   };
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 50000);
-  let upstream;
-  try {
-    upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY }, body: JSON.stringify(payload), signal: ctrl.signal,
-    });
-  } catch (e) {
-    return json({ error: e.name === 'AbortError' ? 'the AI took too long and was cancelled — try a shorter prompt' : 'could not reach the AI service' }, 200, request, env);
-  } finally {
+  // AI_MODEL = "BESTMODEL" tries the best model first and falls back down a chain whenever
+  // one is overloaded, rate-limited or unavailable. Otherwise the single configured model is used.
+  const DEFAULT_CHAIN = 'gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-2.5-flash,gemini-flash-latest,gemini-2.5-flash-lite';
+  const configured = (env.AI_MODEL || 'gemini-2.5-flash').trim();
+  const models = configured.toUpperCase() === 'BESTMODEL'
+    ? (env.BESTMODEL_CHAIN || DEFAULT_CHAIN).split(',').map(s => s.trim()).filter(Boolean)
+    : [configured];
+
+  const deadline = Date.now() + 55000;
+  let lastErr = 'no model responded';
+  for (const model of models) {
+    if (Date.now() > deadline) break;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 25000);
+    let upstream;
+    try {
+      upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY }, body: JSON.stringify(payload), signal: ctrl.signal,
+      });
+    } catch (e) {
+      lastErr = e.name === 'AbortError' ? 'the AI timed out' : 'could not reach the AI service';
+      clearTimeout(timer);
+      continue; // try the next model
+    }
     clearTimeout(timer);
+    const data = await upstream.json().catch(() => ({}));
+    if (upstream.ok) {
+      const cand = data.candidates?.[0];
+      const text = (cand?.content?.parts || []).map(p => p.text || '').join('');
+      if (text) return json({ text, usage: data.usageMetadata, model }, 200, request, env);
+      lastErr = `no text (finishReason: ${cand?.finishReason || '?'})`;
+      continue; // empty output — try the next model
+    }
+    const msg = data?.error?.message || `AI error ${upstream.status}`;
+    lastErr = msg;
+    const retriable = [429, 500, 503, 404].includes(upstream.status) || /overload|high demand|unavailable|exhausted|try again|quota/i.test(msg);
+    if (models.length > 1 && retriable) continue; // fall back to the next model
+    return json({ error: msg }, 200, request, env);
   }
-  const data = await upstream.json().catch(() => ({}));
-  if (!upstream.ok) return json({ error: data?.error?.message || `AI error ${upstream.status}` }, 200, request, env);
-  const cand = data.candidates?.[0];
-  const text = (cand?.content?.parts || []).map(p => p.text || '').join('');
-  if (!text) return json({ error: `the model returned no text${cand?.finishReason ? ` (finishReason: ${cand.finishReason})` : ''}` }, 200, request, env);
-  return json({ text, usage: data.usageMetadata, model }, 200, request, env);
+  return json({ error: models.length > 1 ? `all models are busy right now — ${lastErr}` : lastErr }, 200, request, env);
 }
 
 // ---------- SSRF-guarded fetch (approved users) ----------

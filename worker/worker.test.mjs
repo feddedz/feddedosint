@@ -25,12 +25,17 @@ const call = async (env, ...a) => { const r = await worker.fetch(req(...a), env)
 
 // Stub GitHub + Gemini upstreams.
 let STUB_LOGIN = 'alice';
+let OVERLOADED = new Set();
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, opts) => {
   url = String(url);
   if (url.includes('github.com/login/oauth/access_token')) return new Response(JSON.stringify({ access_token: 'gho_x' }), { status: 200 });
   if (url.includes('api.github.com/user')) return new Response(JSON.stringify({ login: STUB_LOGIN, name: STUB_LOGIN + ' Name', avatar_url: 'https://x/a.png' }), { status: 200 });
-  if (url.includes('generativelanguage.googleapis.com')) return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'AI OK' }] } }], usageMetadata: {} }), { status: 200 });
+  if (url.includes('generativelanguage.googleapis.com')) {
+    const m = url.match(/models\/([^:]+):/)?.[1] || '';
+    if (OVERLOADED.has(m)) return new Response(JSON.stringify({ error: { message: 'This model is currently experiencing high demand.' } }), { status: 503 });
+    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'AI OK' }] } }], usageMetadata: {} }), { status: 200 });
+  }
   return realFetch(url, opts);
 };
 
@@ -112,6 +117,20 @@ async function loginAs(env, login) {
   // deny alice -> blocked even from fetch
   await call(env, 'POST', '/admin/user', { login: 'alice', status: 'denied' }, adminTok);
   ok((await call(env, 'POST', '/ai/chat', { prompt: 'hi' }, aliceTok)).status === 403, 'denied user blocked');
+}
+
+// --- BESTMODEL fallback ---
+{
+  const env = baseEnv(); env.AI_MODEL = 'BESTMODEL';
+  const adminTok = await loginAs(env, 'feddedz');
+  OVERLOADED = new Set(['gemini-3.8-flash', 'gemini-3.7-flash']);
+  const r = await call(env, 'POST', '/ai/chat', { prompt: 'hi' }, adminTok);
+  ok(r.status === 200 && r.data.text === 'AI OK', 'BESTMODEL falls back to a working model');
+  ok(r.data.model === 'gemini-3.6-flash', 'BESTMODEL picked the next available model (' + r.data.model + ')');
+  OVERLOADED = new Set(['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite']);
+  const all = await call(env, 'POST', '/ai/chat', { prompt: 'hi' }, adminTok);
+  ok(all.data.error && /all models are busy/i.test(all.data.error), 'BESTMODEL reports when everything is busy');
+  OVERLOADED = new Set();
 }
 
 // --- CORS ---
