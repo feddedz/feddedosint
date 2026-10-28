@@ -30,11 +30,14 @@ import utils from './tools/utils.js';
 import graph from './tools/graph.js';
 import caseFile from './tools/case.js';
 import account from './tools/account.js';
+import engine from './tools/engine.js';
+import chat from './tools/chat.js';
 import settingsTool from './tools/settings.js';
 
 // Sidebar groups. Every labelled group can be collapsed; collapsed groups still show the active tool.
 const GROUPS = [
   { id: 'start', label: '', tools: [overview] },
+  { id: 'intelligence', label: 'intelligence', tools: [engine, chat] },
   { id: 'identity', label: 'identity', tools: [username, email, phone, breach] },
   { id: 'network', label: 'network', tools: [domain, ip, asn, url, mac, cidr] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
@@ -50,7 +53,7 @@ const TITLES = {
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
   cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
   extract: 'entity extractor', utils: 'decoders', graph: 'investigation graph', case: 'case file',
-  account: 'account & 2fa', settings: 'settings',
+  account: 'account & 2fa', settings: 'settings', engine: 'autonomous engine', chat: 'ai assistant',
 };
 // One short line per tool for the launcher.
 const BLURBS = {
@@ -63,6 +66,7 @@ const BLURBS = {
   dorks: 'operator query builder', extract: 'pull iocs from any text', utils: 'encode, decode, hash',
   graph: 'your pivots, visualised', case: 'notes, timeline, reports',
   account: 'sign in · 2fa', settings: 'backend, keys, theme',
+  engine: 'investigate automatically', chat: 'ask, plan, interpret',
 };
 const TOOLS = GROUPS.flatMap(g => g.tools);
 const byId = Object.fromEntries(TOOLS.map(t => [t.id, t]));

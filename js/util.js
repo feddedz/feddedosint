@@ -304,3 +304,42 @@ export function linkGroups(groups) {
 export function grid(...cards) {
   return h('div', { class: 'grid' }, ...cards);
 }
+
+// Minimal, safe Markdown → DOM. Builds nodes only (never innerHTML of model/page text),
+// so nothing in the input can inject markup. Supports headings, bold, italic, inline
+// code, links (http/https only), bullet and numbered lists, and paragraphs.
+export function mdLite(src) {
+  const root = h('div', { class: 'md' });
+  const lines = String(src || '').replace(/\r/g, '').split('\n');
+  let list = null, para = [];
+  const flushPara = () => { if (para.length) { root.append(h('p', {}, ...inline(para.join(' ')))); para = []; } };
+  const flushList = () => { if (list) { root.append(list.el); list = null; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    let m;
+    if (!line.trim()) { flushPara(); flushList(); continue; }
+    if ((m = line.match(/^(#{1,4})\s+(.*)$/))) { flushPara(); flushList(); root.append(h('h' + (m[1].length + 2), {}, ...inline(m[2]))); continue; }
+    if ((m = line.match(/^\s*[-*]\s+(.*)$/))) { flushPara(); if (!list || list.ord) { flushList(); list = { el: h('ul'), ord: false }; } list.el.append(h('li', {}, ...inline(m[1]))); continue; }
+    if ((m = line.match(/^\s*\d+[.)]\s+(.*)$/))) { flushPara(); if (!list || !list.ord) { flushList(); list = { el: h('ol'), ord: true }; } list.el.append(h('li', {}, ...inline(m[1]))); continue; }
+    flushList(); para.push(line.trim());
+  }
+  flushPara(); flushList();
+  return root;
+}
+
+function inline(text) {
+  const out = [];
+  // tokens: `code`  **bold**  *italic*  [label](url)
+  const re = /`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    if (m[1] != null) out.push(h('code', {}, m[1]));
+    else if (m[2] != null) out.push(h('strong', {}, m[2]));
+    else if (m[3] != null) out.push(h('em', {}, m[3]));
+    else if (m[4] != null) out.push(ext(m[5], m[4]));
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
