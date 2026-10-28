@@ -18,7 +18,7 @@ function backendCard() {
   save.onclick = async () => { setSetting('backendUrl', input.value.trim().replace(/\/+$/, '')); save.textContent = 'saved'; setTimeout(() => (save.textContent = 'save'), 900); await check(); };
   check();
   return card('backend', { wide: true, actions: status },
-    muted('Optional Cloudflare Worker that hides your Gemini key and powers accounts, 2FA and the AI. Set up with the guide, then paste its URL here.'),
+    muted('Optional Cloudflare Worker that hides your Gemini key and powers GitHub sign-in and the AI. Set up with the guide, then paste its URL here.'),
     h('div', { class: 'row' }, input, save),
     h('p', { class: 'muted small' }, 'guide: ', ext('https://github.com/feddedz/feddedosint/blob/main/worker/README.md', 'worker/README.md'),
       ' · once connected, ', pivot('account', '', 'sign in →')));

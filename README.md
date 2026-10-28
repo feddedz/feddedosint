@@ -16,8 +16,8 @@ Tools live in a collapsible sidebar: click a group name to fold it, fold them al
 | group · tool | what it does |
 | --- | --- |
 | **universal search** | One box for everything — detects email, domain, URL, IP, CIDR, ASN, username, phone, wallet, MAC, coordinates, hash or CVE and runs the right tool, with one click to re-run it as another type. Its home screen lists every tool. |
-| intelligence · **engine** | Autonomous investigation: point it at a domain, IP, URL, email or ASN and it expands outward across public sources (DNS, RDAP, hosting, Shodan exposure, ASN), gathering cited evidence, building the graph, and writing an evidence-backed report with an AI analysis on top. Needs the backend for the AI layer. |
-| intelligence · **chat** | An AI assistant that can see your investigation graph and notes, helps plan and interpret, and makes the entities in its replies clickable. Uses your Gemini key through the Worker, so the key never reaches the browser. Needs the backend. |
+| intelligence · **engine** | Autonomous investigation: point it at a domain, IP, URL, email or ASN and it expands outward across public sources (DNS, RDAP, hosting, Shodan exposure, ASN), gathering cited evidence, building the graph, and writing an evidence-backed report with an AI analysis on top. Pro feature (GitHub sign-in + approval). |
+| intelligence · **chat** | An AI assistant that can see your investigation graph and notes, helps plan and interpret, and makes the entities in its replies clickable. Runs on the owner's Gemini key through the Worker, so the key never reaches the browser. Pro feature. |
 | identity · **username** | Live account checks via public APIs (GitHub, GitLab, Reddit, Hacker News, Bluesky, Mastodon, Keybase, Chess.com, Lichess, npm, Wikipedia, DEV) plus ~80 one-click profile links. |
 | identity · **email** | Gravatar, MX/provider detection, SPF/DMARC, free / disposable / privacy-relay detection, pivots. |
 | identity · **phone** | Parsing & validation for every country (libphonenumber): line type, all formats, messenger & caller-ID links. |
@@ -41,18 +41,19 @@ Tools live in a collapsible sidebar: click a group name to fold it, fold them al
 | tools · **decoders** | Offline base64 / URL / hex / binary, SHA hashes, rot13, IOC defang/refang, timestamp and JWT decoding. |
 | workspace · **graph** | A live investigation graph: every entity you open becomes a node and pivots draw the links. Drag to arrange, click to reopen, export as JSON. |
 | workspace · **case** | Your investigation file: title, notes (autosaved), every entity grouped by type, a timeline, and exports to a Markdown report, JSON (re-importable) or print / PDF. |
-| workspace · **account** | Sign up / log in and manage TOTP 2FA (Authy, Google Authenticator…). The admin account can see who signed up. Needs the backend. |
+| workspace · **account** | Sign in with GitHub. New accounts are pending until an admin approves them; the admin grants pro (which unlocks the AI). The admin sees the member list. Needs the backend. |
 | workspace · **settings** | Backend URL, optional API keys (HIBP, Shodan, VirusTotal, Etherscan, IPinfo, urlscan), dark/light theme, graph recording, and clearing your data. |
 
-## Backend (optional) — AI, accounts and 2FA
+## Backend — AI, accounts and access
 
-The static site works on its own. For the **engine's AI analysis**, the **chat**, and real **accounts + 2FA**, deploy the included Cloudflare Worker (`worker/`), which:
+The 28 tools run entirely in your browser and work for everyone with no setup. The **AI engine** and **chat** are powered by a small Cloudflare Worker (`worker/`), which:
 
-- holds your Gemini key as a server-side secret, so every visitor's AI request uses it **without the key ever reaching a browser**;
-- backs signup / login with PBKDF2-hashed passwords (**never readable by anyone, including the admin**) and TOTP 2FA;
-- adds rate limits, an invite-code option, and an SSRF-guarded fetcher.
+- holds the Gemini key as a server-side secret, so every visitor's AI request uses it **without the key ever reaching a browser**;
+- signs users in with **GitHub** (no passwords; GitHub handles 2FA);
+- keeps new accounts **pending** until the admin approves, and gates the AI to **pro** users the admin grants;
+- adds rate limits, a CORS allowlist and an SSRF-guarded fetcher.
 
-It runs on Cloudflare's free tier. Full setup is in [`worker/README.md`](worker/README.md); then paste the Worker URL into **settings → backend**. **Rotate your Gemini key** before using it anywhere, and set it only as a Worker secret — never commit it.
+It runs on Cloudflare's free tier. Setup — including the GitHub OAuth app — is in [`worker/README.md`](worker/README.md). The Gemini key is set only as a Worker secret; it is never committed.
 
 Results cross-link: click an IP, domain, email, hash or handle in any result to pivot into that tool — and the move is recorded in the graph and case file. Every search is a shareable URL (`#domain/example.com`).
 

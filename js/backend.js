@@ -1,15 +1,13 @@
-// Client for the feddedosint Cloudflare Worker. When no backend URL is set in
-// Settings, backendConfigured() is false and callers fall back to static behaviour.
+// Client for the feddedosint Worker. GitHub sign-in; AI is gated to approved pro users.
 
-import { settings, setSetting, getSession, setSession, authToken } from './store.js';
+import { settings, setSetting, getSession, setSession, authToken, currentUser } from './store.js';
 
 export const backendURL = () => (settings().backendUrl || '').replace(/\/+$/, '');
 export const backendConfigured = () => !!backendURL();
 
 let healthCache = null;
-export function clearHealthCache() { healthCache = null; }
+export const clearHealthCache = () => { healthCache = null; };
 
-// Low-level call. Returns { ok, status, data }.
 export async function api(path, { method = 'GET', body, auth = false, timeout = 30000 } = {}) {
   const base = backendURL();
   if (!base) return { ok: false, status: 0, data: { error: 'no backend configured' } };
@@ -18,16 +16,13 @@ export async function api(path, { method = 'GET', body, auth = false, timeout = 
   try {
     const res = await fetch(base + path, {
       method,
-      headers: {
-        ...(body ? { 'Content-Type': 'application/json' } : {}),
-        ...(auth && authToken() ? { Authorization: 'Bearer ' + authToken() } : {}),
-      },
+      headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(auth && authToken() ? { Authorization: 'Bearer ' + authToken() } : {}) },
       body: body ? JSON.stringify(body) : undefined,
       signal: ctrl.signal,
     });
     let data = null;
     try { data = await res.json(); } catch {}
-    if (res.status === 401 && auth) setSession(null); // stale session
+    if (res.status === 401 && auth) setSession(null);
     return { ok: res.ok, status: res.status, data };
   } catch (e) {
     return { ok: false, status: 0, data: { error: e.name === 'AbortError' ? 'request timed out' : 'could not reach the backend' } };
@@ -46,16 +41,33 @@ export async function health(force) {
 // ---------- auth ----------
 
 export const isLoggedIn = () => !!getSession();
+export const user = () => currentUser();
+export const isAdmin = () => !!currentUser()?.admin;
+export const isApproved = () => { const u = currentUser(); return !!u && (u.admin || u.status === 'approved'); };
+export const isPro = () => { const u = currentUser(); return !!u && (u.admin || (u.status === 'approved' && u.pro)); };
 
-export async function signup(username, password, code) {
-  const r = await api('/auth/signup', { method: 'POST', body: { username, password, code } });
-  if (r.ok) setSession({ token: r.data.token, user: r.data.user });
-  return r;
+// Start the GitHub OAuth flow by sending the browser to the Worker.
+export function loginWithGitHub() {
+  if (!backendConfigured()) return;
+  location.href = backendURL() + '/auth/github/start';
 }
 
-export async function login(username, password, totp) {
-  const r = await api('/auth/login', { method: 'POST', body: { username, password, totp } });
-  if (r.ok && r.data.token) setSession({ token: r.data.token, user: r.data.user });
+// Called on page load: if the Worker redirected back with #auth=<token>, store it.
+// Returns 'ok' | 'error' | null.
+export async function consumeAuthRedirect() {
+  const m = location.hash.match(/^#auth=([^&]+)/);
+  if (!m) return null;
+  const val = decodeURIComponent(m[1]);
+  history.replaceState(null, '', location.pathname + location.search + '#account');
+  if (val.startsWith('error:')) return 'error';
+  setSession({ token: val, user: null });
+  const r = await refreshMe();
+  return r.ok ? 'ok' : 'error';
+}
+
+export async function refreshMe() {
+  const r = await api('/auth/me', { auth: true });
+  if (r.ok) setSession({ token: authToken(), user: r.data.user });
   return r;
 }
 
@@ -64,30 +76,13 @@ export async function logout() {
   setSession(null);
 }
 
-export async function refreshMe() {
-  const r = await api('/auth/me', { auth: true });
-  if (r.ok) { const s = getSession(); setSession({ ...s, user: r.data.user }); }
-  return r;
-}
-
-export const setup2FA = () => api('/auth/2fa/setup', { method: 'POST', auth: true });
-export async function enable2FA(totp) {
-  const r = await api('/auth/2fa/enable', { method: 'POST', auth: true, body: { totp } });
-  if (r.ok) { const s = getSession(); setSession({ ...s, user: r.data.user }); }
-  return r;
-}
-export async function disable2FA(password, totp) {
-  const r = await api('/auth/2fa/disable', { method: 'POST', auth: true, body: { password, totp } });
-  if (r.ok) { const s = getSession(); setSession({ ...s, user: r.data.user }); }
-  return r;
-}
+// ---------- admin ----------
 export const adminUsers = () => api('/admin/users', { auth: true });
+export const adminSetUser = (login, patch) => api('/admin/user', { method: 'POST', auth: true, body: { login, ...patch } });
 
 // ---------- AI + fetch ----------
-
 export const aiChat = payload => api('/ai/chat', { method: 'POST', auth: true, body: payload, timeout: 60000 });
 export const fetchUrl = url => api('/fetch', { method: 'POST', auth: true, body: { url }, timeout: 20000 });
-
 export const aiAvailable = async () => backendConfigured() && !!(await health())?.ai;
 
 export { setSetting };

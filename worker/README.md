@@ -1,80 +1,60 @@
 # feddedosint backend (Cloudflare Worker)
 
-A single free Worker that holds your Gemini key, backs real accounts + 2FA, and
-proxies OSINT fetches. The site works without it; adding it unlocks the AI, logins
-and broader live data. Your Gemini key lives only here as a secret and is never
-sent to any browser.
+One free Worker, shared by all visitors. It:
 
-## One-time setup (~10 minutes)
+- holds the Gemini key as a server-side secret and relays AI requests — the key never reaches a browser;
+- signs users in with **GitHub** (no passwords);
+- keeps new users **pending** until the admin approves them, and gates the AI (chat + autonomous engine) to **pro** users;
+- adds rate limits, a CORS allowlist and an SSRF-guarded fetcher.
 
-1. **Create a free Cloudflare account** at <https://dash.cloudflare.com/sign-up>.
+## Setup
 
-2. **Install the CLI** (needs Node 18+):
-   ```bash
-   npm install -g wrangler
-   wrangler login
-   ```
+### 1. Create a GitHub OAuth app
+GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**:
+- **Homepage URL:** `https://feddedz.github.io/feddedosint/`
+- **Authorization callback URL:** `https://feddedosint-api.<your-subdomain>.workers.dev/auth/github/callback`
+  (your Worker URL + `/auth/github/callback`)
 
-3. **From this `worker/` folder, create the KV store:**
-   ```bash
-   cd worker
-   wrangler kv namespace create USERS
-   ```
-   Copy the printed `id` into `wrangler.toml` (replace `PASTE_YOUR_KV_NAMESPACE_ID_HERE`).
+Copy the **Client ID**, then **Generate a client secret** and copy that too.
 
-4. **Edit `wrangler.toml`:** set `ADMIN_USER` to the username you'll sign up with,
-   and confirm `ALLOWED_ORIGINS` matches your site (e.g. `https://feddedz.github.io`).
+### 2. Create the Worker (dashboard)
+Cloudflare dashboard → **Workers & Pages → Create → Worker**, name it `feddedosint-api`, Deploy, then **Edit code** and paste the contents of [`worker.js`](worker.js). Deploy.
 
-5. **Set your secrets** (these never go in the repo):
-   ```bash
-   wrangler secret put GEMINI_KEY
-   # paste a FRESH Gemini key — rotate the old one first
-   wrangler secret put SIGNUP_CODE   # optional: an invite code to control who can register
-   ```
+### 3. Create the KV database and bind it
+**Storage & Databases → KV → Create namespace** named `USERS`. Then on the Worker → **Settings → Bindings → Add → KV namespace**, variable name `USERS`, pick the namespace.
 
-6. **Deploy:**
-   ```bash
-   wrangler deploy
-   ```
-   It prints a URL like `https://feddedosint-api.<you>.workers.dev`.
+### 4. Variables and secrets
+On the Worker → **Settings → Variables and secrets**. Add as **text**:
 
-7. **Tell the site:** open feddedosint → **settings → backend**, paste that URL, Save.
-   Then **account → sign up** (use the exact `ADMIN_USER` name to get the admin view).
+| name | value |
+| --- | --- |
+| `AI_MODEL` | `gemini-2.5-flash` |
+| `ALLOWED_ORIGINS` | `https://feddedz.github.io` |
+| `SITE_URL` | `https://feddedz.github.io/feddedosint/` |
+| `ADMIN_USER` | your GitHub username |
+| `GITHUB_CLIENT_ID` | from step 1 |
 
-## Choosing the model
+Add as **secrets** (encrypted):
 
-`AI_MODEL` must be an exact id. List what your key can use:
+| name | value |
+| --- | --- |
+| `GEMINI_KEY` | your Gemini key |
+| `GITHUB_CLIENT_SECRET` | from step 1 |
 
-```bash
-curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY" | grep '"name"'
-```
+Deploy.
 
-Pick a `*-flash` model from the list, set it in `wrangler.toml`, and `wrangler deploy` again.
+### 5. Connect the site
+Open `<worker-url>/health` — it should show `{"ok":true,"ai":true,"github":true,...}`. Then on the site → **settings → backend**, paste the Worker URL. Go to **account → continue with GitHub**. The first time you sign in with the `ADMIN_USER` account you become admin; everyone else is pending until you approve them (and grant pro) in the members panel.
+
+## CLI alternative
+With `wrangler` installed: fill `wrangler.toml`, then
+`wrangler kv namespace create USERS`, `wrangler secret put GEMINI_KEY`, `wrangler secret put GITHUB_CLIENT_SECRET`, `wrangler deploy`.
 
 ## Endpoints
+`GET /health` · `GET /auth/github/start` · `GET /auth/github/callback` · `GET /auth/me` · `POST /auth/logout` · `GET /admin/users` · `POST /admin/user` · `POST /ai/chat` · `POST /fetch`
 
-| method · path | purpose |
-| --- | --- |
-| `GET /health` | config check (no secrets) |
-| `POST /auth/signup` · `POST /auth/login` · `POST /auth/logout` | accounts |
-| `GET /auth/me` | current user |
-| `POST /auth/2fa/setup` · `/enable` · `/disable` | TOTP 2FA |
-| `GET /admin/users` | list signups (admin only; usernames + 2FA status, **never passwords**) |
-| `POST /ai/chat` | Gemini proxy (your key, server-side) |
-| `POST /fetch` | SSRF-guarded URL fetch for OSINT |
-
-## Security notes
-
-- Passwords are stored only as PBKDF2-SHA256 hashes (210k iterations, random salt).
-  Nobody — including you — can read a user's password; the admin view shows who
-  signed up and whether 2FA is on, nothing more.
-- Rate limits: AI 60/min per user, fetch 40/min, login 10/5min, signup 5/hour per IP.
-- `/fetch` blocks private/loopback/metadata addresses and caps responses at 512 KB.
-- Free tier covers ~100k requests/day. Keeping `AI_REQUIRE_AUTH = "true"` means only
-  people who signed up can spend your Gemini quota.
-
-## Local test of the logic
-
-```bash
-node worker.test.mjs   # runs the auth / TOTP / AI-proxy / SSRF / CORS suite in Node 18+
-```
+## Notes
+- No passwords are stored; GitHub handles sign-in and its own 2FA.
+- AI is pro-only and rate-limited (60/min per user); keeping signups gated to approval protects your Gemini quota.
+- `/fetch` blocks private/loopback/metadata hosts and caps responses at 512 KB.
+- Logic tests: `node worker.test.mjs` (Node 18+).

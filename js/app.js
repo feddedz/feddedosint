@@ -53,7 +53,7 @@ const TITLES = {
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
   cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
   extract: 'entity extractor', utils: 'decoders', graph: 'investigation graph', case: 'case file',
-  account: 'account & 2fa', settings: 'settings', engine: 'autonomous engine', chat: 'ai assistant',
+  account: 'account', settings: 'settings', engine: 'autonomous engine', chat: 'ai assistant',
 };
 // One short line per tool for the launcher.
 const BLURBS = {
@@ -65,7 +65,7 @@ const BLURBS = {
   cve: 'severity & exploit odds', headers: 'trace & vet an email', records: 'companies, courts, news',
   dorks: 'operator query builder', extract: 'pull iocs from any text', utils: 'encode, decode, hash',
   graph: 'your pivots, visualised', case: 'notes, timeline, reports',
-  account: 'sign in · 2fa', settings: 'backend, keys, theme',
+  account: 'sign in with github', settings: 'backend, keys, theme',
   engine: 'investigate automatically', chat: 'ask, plan, interpret',
 };
 const TOOLS = GROUPS.flatMap(g => g.tools);
@@ -365,4 +365,9 @@ addEventListener('keydown', e => {
   }
 });
 
-route();
+// Pick up a GitHub OAuth redirect (#auth=…), and load the current user for an
+// existing session, before the first route so gates read the right state.
+import('./backend.js').then(async be => {
+  await be.consumeAuthRedirect().catch(() => {});
+  if (be.isLoggedIn() && !be.user()) await be.refreshMe().catch(() => {});
+}).finally(route);
