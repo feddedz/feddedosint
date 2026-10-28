@@ -35,6 +35,17 @@ export async function getJSON(url, { timeout = 15000, headers } = {}) {
   }
 }
 
+export async function getText(url, { timeout = 15000, headers } = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const res = await fetch(url, { headers, signal: ctrl.signal, referrerPolicy: 'no-referrer' });
+    return { ok: res.ok, status: res.status, text: await res.text().catch(() => '') };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ---------- DNS over HTTPS ----------
 
 const RR = { A: 1, NS: 2, CNAME: 5, SOA: 6, PTR: 12, MX: 15, TXT: 16, AAAA: 28, CAA: 257 };
@@ -181,8 +192,24 @@ export const ext = (href, ...children) =>
   h('a', { href, target: '_blank', rel: 'noopener noreferrer' }, ...(children.length ? children : [href]));
 
 // Internal link that re-runs another tool on a value (pivoting).
+// dataset lets the router record a graph edge from the current entity to this one.
 export const pivot = (tool, value, label = value) =>
-  h('a', { href: `#${tool}/${encodeURIComponent(value)}`, class: 'pivot', title: `${tool} lookup` }, label);
+  h('a', {
+    href: `#${tool}/${encodeURIComponent(value)}`, class: 'pivot', title: `${tool} lookup`,
+    dataset: { pivotTool: tool, pivotValue: value },
+  }, label);
+
+// Small inline badge. tone: 'ok' | 'warn' | 'bad' | 'muted'
+export const badge = (text, tone = 'muted') => h('span', { class: `badge ${tone}` }, text);
+
+// Confidence / provenance marker shown next to a derived conclusion.
+export const confidence = level => {
+  const tone = { high: 'ok', medium: 'warn', low: 'bad' }[level] || 'muted';
+  return badge(level + ' confidence', tone);
+};
+
+// A short note line used as a card caption.
+export const note = text => h('p', { class: 'muted small' }, text);
 
 export function card(title, { wide = false, actions } = {}, ...body) {
   return h('article', { class: 'card' + (wide ? ' wide' : '') },
