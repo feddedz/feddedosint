@@ -1,4 +1,4 @@
-import { h, card, kv, copyBtn, muted, badge } from '../util.js';
+import { h, card, kv, copyBtn, muted, badge, defang, refang } from '../util.js';
 
 const rot13 = s => s.replace(/[a-z]/gi, c => {
   const base = c <= 'Z' ? 65 : 97;
@@ -29,9 +29,6 @@ function decodeJWT(token) {
   try { return { header: dec(parts[0]), payload: dec(parts[1]) }; } catch { return null; }
 }
 
-// Defang / refang indicators of compromise, the way analysts share them safely.
-const defang = s => s.replace(/\./g, '[.]').replace(/:\/\//g, '[://]').replace(/^http/i, 'hxxp').replace(/@/g, '[@]');
-const refang = s => s.replace(/\[\.\]|\(\.\)|\{\.\}/g, '.').replace(/\[:\/\/\]|\(:\/\/\)/g, '://').replace(/hxxp/gi, 'http').replace(/\[@\]|\(@\)/g, '@');
 
 function result(label, value) {
   const out = h('code', { class: 'query wrap' }, value || '—');

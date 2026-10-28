@@ -23,7 +23,7 @@ const FIELDS = [
 
 export default {
   id: 'dorks',
-  label: 'search',
+  label: 'engines',
   placeholder: 'keywords',
   intro: 'Build precise search-engine queries with operators (site, filetype, intitle, dates…) and run them on several engines at once.',
   examples: ['"open source intelligence"'],

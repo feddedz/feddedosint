@@ -11,28 +11,37 @@ history are stored only in your browser.
 
 ## Tools
 
-The toolbar is grouped: **universal search**, then **identity**, **network**, **assets**, **threat**, **research**, **tools**, and the **graph** + **settings**.
+Tools live in a collapsible sidebar: click a group name to fold it, fold them all at once, or shrink the whole sidebar to an icon rail. On phones it becomes a drawer. Every result card folds too (click its title), and **Ctrl / ⌘ K** opens a command palette that jumps to any tool, recent search, or runs whatever you typed.
 
-| group · tab | what it does |
+| group · tool | what it does |
 | --- | --- |
-| **search** (universal) | One box for everything — detects whether you typed an email, domain, IP, username, phone, wallet or CVE and runs the right tool, with one click to re-run it as another type. |
+| **universal search** | One box for everything — detects email, domain, URL, IP, CIDR, ASN, username, phone, wallet, MAC, coordinates, hash or CVE and runs the right tool, with one click to re-run it as another type. Its home screen lists every tool. |
 | identity · **username** | Live account checks via public APIs (GitHub, GitLab, Reddit, Hacker News, Bluesky, Mastodon, Keybase, Chess.com, Lichess, npm, Wikipedia, DEV) plus ~80 one-click profile links. |
 | identity · **email** | Gravatar, MX/provider detection, SPF/DMARC, free / disposable / privacy-relay detection, pivots. |
 | identity · **phone** | Parsing & validation for every country (libphonenumber): line type, all formats, messenger & caller-ID links. |
 | identity · **breach** | Check *your own* exposure: email breaches (via your HIBP key), a k-anonymity password check (the password never leaves the browser), and a searchable library of known breaches. |
 | network · **domain** | DNS, RDAP/WHOIS, mail security (SPF/DMARC/DKIM, spoofability), service fingerprinting, hosting/ASN, certificate-transparency subdomains and Wayback history. |
-| network · **ip** | Geolocation + map, ASN/ISP, reverse DNS, open ports & CVEs (Shodan InternetDB), RDAP ownership. Leave empty for your own IP. |
-| network · **network (ASN)** | Explore an autonomous system — operator, prefixes/address space, peers & upstreams. Accepts an ASN or an IP. |
+| network · **ip** | Geolocation + map, ASN/ISP, reverse DNS, open ports & CVEs (Shodan InternetDB), RDAP ownership — plus Shodan and IPinfo cards when you add those keys. Empty = your own IP. |
+| network · **asn** | Explore an autonomous system — operator, prefixes/address space, peers & upstreams. Accepts an ASN or an IP. |
+| network · **url** | Breaks a link apart, flags phishing tricks (credentials-in-URL, punycode, raw IPs, shorteners, risky TLDs, embedded redirects), checks domain age and shows past urlscan.io scans with screenshots. |
+| network · **mac** | Device maker from a MAC / BSSID, randomised-address detection, every format and the derived EUI-64 IPv6 address. |
+| network · **subnet** | IPv4 & IPv6 subnet calculator — range, masks, neighbours, splits — fully offline. |
+| geo · **geo** | Coordinates, DMS or maps links (or a place name) → address, nearby Wikipedia places, map, and jumps to satellite, street-level and shadow-analysis tools. |
+| geo · **map** | Plots IPs, domains and coordinates on a dark world map; domains resolve to their servers and linked entities are joined by animated arcs. Empty = plot your investigation graph. |
 | assets · **wallet** | Bitcoin & Ethereum address balances, activity and transactions, with links to the major chain-analysis explorers. |
-| assets · **image** | Reverse image search from a URL, or drop a file to read EXIF, camera serials and GPS locally — the file never leaves the browser. |
-| threat · **vuln (CVE)** | CVE description, CVSS severity, EPSS exploit probability, weaknesses and references (NVD + FIRST). |
+| assets · **image** | Reverse image search from a URL, or drop a file to read EXIF, camera serials and GPS locally. |
+| assets · **file** | Static file triage, offline: real type from magic bytes (catches disguised extensions), MD5 / SHA-1 / SHA-256, entropy, strings, PE / ELF headers, and indicators found inside. Paste a hash to look it up. |
+| threat · **vuln** | CVE description, CVSS severity, EPSS exploit probability, weaknesses and references (NVD + FIRST). |
+| threat · **headers** | Email header analysis for phishing triage — delivery path with per-hop delays, SPF / DKIM / DMARC, spoofing red flags, and every IP / domain inside. |
 | research · **records** | Public-record & news research — company registries, courts, sanctions, academia, archives — plus live Hacker News and GitHub mentions. |
-| research · **search (dorks)** | Query builder for search-engine operators (site, filetype, intitle, date ranges…) across Google, Bing, DuckDuckGo and Yandex. |
-| tools · **decoders** | Offline base64 / URL / hex / binary, SHA hashes, rot13, IOC defang/refang, timestamp and JWT decoding — all in-browser. |
-| **graph** | A live investigation graph: every entity you open becomes a node and pivots draw the links. Drag to arrange, click to reopen, export as JSON. |
-| **settings** | Store optional API keys (HIBP, Shodan, VirusTotal, Etherscan, IPinfo, urlscan), switch dark/light, pause the graph, and clear your data. |
+| research · **engines** | Query builder for search-engine operators (site, filetype, intitle, date ranges…) across Google, Bing, DuckDuckGo and Yandex. |
+| tools · **extract** | Paste any text — report, log, email, chat — and every URL, domain, IP, hash, CVE, wallet, MAC, phone and handle is pulled out (defanged ones too) and made pivotable. |
+| tools · **decoders** | Offline base64 / URL / hex / binary, SHA hashes, rot13, IOC defang/refang, timestamp and JWT decoding. |
+| workspace · **graph** | A live investigation graph: every entity you open becomes a node and pivots draw the links. Drag to arrange, click to reopen, export as JSON. |
+| workspace · **case** | Your investigation file: title, notes (autosaved), every entity grouped by type, a timeline, and exports to a Markdown report, JSON (re-importable) or print / PDF. |
+| workspace · **settings** | Optional API keys (HIBP, Shodan, VirusTotal, Etherscan, IPinfo, urlscan), dark/light theme, graph recording, and clearing your data. |
 
-Results cross-link: click an IP, domain, email or handle in any result to pivot into that tool — and the move is recorded in the graph. Every search is a shareable URL (`#domain/example.com`).
+Results cross-link: click an IP, domain, email, hash or handle in any result to pivot into that tool — and the move is recorded in the graph and case file. Every search is a shareable URL (`#domain/example.com`).
 
 ## API keys (optional)
 
@@ -57,5 +66,5 @@ Then open http://localhost:8000.
 ## Notes
 
 - Free public APIs can rate-limit or go down; any check that can't complete shows as *unverified* with a link to check manually.
-- Third-party libraries (libphonenumber-js, exifr) load lazily from jsDelivr, pinned to exact versions with Subresource Integrity hashes.
+- Third-party libraries (libphonenumber-js, exifr, Leaflet) load lazily from jsDelivr, pinned to exact versions with Subresource Integrity hashes. Map tiles © OpenStreetMap contributors © CARTO.
 - For lawful, ethical research only. Respect people's privacy and each site's terms of service.

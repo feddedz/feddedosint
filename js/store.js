@@ -24,7 +24,7 @@ export const hasKey = id => !!getKey(id);
 
 // ---------- settings ----------
 const SETTINGS = 'feddedosint.settings';
-const defaults = { theme: 'dark', proxy: '', graph: true };
+const defaults = { theme: 'dark', proxy: '', graph: true, rail: false, closedGroups: [] };
 export const settings = () => ({ ...defaults, ...read(SETTINGS, {}) });
 export const setSetting = (k, v) => { const s = settings(); s[k] = v; write(SETTINGS, s); };
 
@@ -36,6 +36,7 @@ export function applyTheme() {
 // ---------- recent searches ----------
 const RECENT = 'feddedosint.recent';
 export const recentFor = tool => read(RECENT, []).filter(r => r.t === tool);
+export const recentAll = () => read(RECENT, []);
 export function remember(t, q) {
   if (!q) return;
   write(RECENT, [{ t, q, at: Date.now() }, ...read(RECENT, []).filter(r => !(r.t === t && r.q === q))].slice(0, 60));
@@ -75,3 +76,36 @@ export function trackEdge(fromTool, fromValue, toTool, toValue) {
 
 export function clearGraph() { write(GRAPH, emptyGraph()); }
 export const graphSize = () => Object.keys(graph().nodes).length;
+
+export function removeNode(id) {
+  const g = graph();
+  delete g.nodes[id];
+  g.edges = g.edges.filter(e => e.from !== id && e.to !== id);
+  write(GRAPH, g);
+}
+
+// Replace the graph with an imported one (case file restore). Only well-formed entries survive.
+export function importGraph(g) {
+  const nodes = {};
+  for (const [id, n] of Object.entries(g?.nodes || {})) {
+    if (n && typeof n.tool === 'string' && typeof n.value === 'string') nodes[id] = { id, tool: n.tool, value: n.value, at: Number(n.at) || Date.now() };
+  }
+  const edges = (g?.edges || []).filter(e => nodes[e?.from] && nodes[e?.to]).map(e => ({ from: e.from, to: e.to, at: Number(e.at) || Date.now() }));
+  write(GRAPH, { nodes, edges });
+}
+
+// ---------- case file (title + notes) ----------
+const CASE = 'feddedosint.case';
+export const getCase = () => ({ title: 'untitled investigation', notes: '', ...read(CASE, {}) });
+export const setCase = patch => write(CASE, { ...getCase(), ...patch, updated: Date.now() });
+
+// ---------- geolocation cache (ip -> coordinates), so maps do not re-query ----------
+const GEO = 'feddedosint.geo';
+export const geoCached = ip => read(GEO, {})[ip] || null;
+export function geoStore(ip, info) {
+  const all = read(GEO, {});
+  all[ip] = { ...info, at: Date.now() };
+  const keys = Object.keys(all);
+  if (keys.length > 500) keys.sort((a, b) => all[a].at - all[b].at).slice(0, keys.length - 500).forEach(k => delete all[k]);
+  write(GEO, all);
+}
