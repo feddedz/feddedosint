@@ -1,21 +1,37 @@
 # feddedosint
 
-A fast, private, client-side OSINT toolkit that runs entirely on GitHub Pages — no backend, no API keys, no tracking.
-Queries go straight from your browser to public services; nothing is proxied or logged.
+A fast, private, client-side OSINT platform that runs entirely on GitHub Pages — no backend, no tracking.
+Queries go straight from your browser to public services; nothing is proxied or logged. API keys (optional) and
+history are stored only in your browser.
 
 ## Tools
 
-| tab | what it does |
-| --- | --- |
-| **username** | Live account checks via public APIs (GitHub, GitLab, Reddit, Hacker News, Bluesky, Mastodon, Keybase, Chess.com, Lichess, npm, Wikipedia, DEV) plus ~80 one-click profile links grouped by category. |
-| **domain** | DNS records, RDAP/WHOIS (registrar, age, expiry, nameservers), mail security (SPF / DMARC / DKIM selectors, spoofability), services fingerprinted from DNS, hosting/ASN, certificate-transparency subdomains (crt.sh) and Wayback history. |
-| **ip** | Geolocation + map, ASN/ISP, reverse DNS, open ports & CVEs from Shodan InternetDB, network ownership via RDAP. Leave empty to look up your own IP. |
-| **email** | Gravatar, MX/provider detection, SPF/DMARC, free / disposable / privacy-relay detection, pivots to the username and domain tools. |
-| **phone** | Parsing & validation for every country (libphonenumber): line type, all formats, messenger and caller-ID links, multi-format search. |
-| **image** | Reverse image search from a URL, or drop a file to read EXIF, camera serials and GPS locally — the file never leaves the browser. |
-| **search** | Query builder for search-engine operators (site, filetype, intitle, inurl, date ranges…) across Google, Bing, DuckDuckGo and Yandex. |
+The toolbar is grouped: **universal search**, then **identity**, **network**, **assets**, **threat**, **research**, **tools**, and the **graph** + **settings**.
 
-Results cross-link: click an IP, domain, email or handle in any result to pivot into that tool. Every search is a shareable URL (`#domain/example.com`).
+| group · tab | what it does |
+| --- | --- |
+| **search** (universal) | One box for everything — detects whether you typed an email, domain, IP, username, phone, wallet or CVE and runs the right tool, with one click to re-run it as another type. |
+| identity · **username** | Live account checks via public APIs (GitHub, GitLab, Reddit, Hacker News, Bluesky, Mastodon, Keybase, Chess.com, Lichess, npm, Wikipedia, DEV) plus ~80 one-click profile links. |
+| identity · **email** | Gravatar, MX/provider detection, SPF/DMARC, free / disposable / privacy-relay detection, pivots. |
+| identity · **phone** | Parsing & validation for every country (libphonenumber): line type, all formats, messenger & caller-ID links. |
+| identity · **breach** | Check *your own* exposure: email breaches (via your HIBP key), a k-anonymity password check (the password never leaves the browser), and a searchable library of known breaches. |
+| network · **domain** | DNS, RDAP/WHOIS, mail security (SPF/DMARC/DKIM, spoofability), service fingerprinting, hosting/ASN, certificate-transparency subdomains and Wayback history. |
+| network · **ip** | Geolocation + map, ASN/ISP, reverse DNS, open ports & CVEs (Shodan InternetDB), RDAP ownership. Leave empty for your own IP. |
+| network · **network (ASN)** | Explore an autonomous system — operator, prefixes/address space, peers & upstreams. Accepts an ASN or an IP. |
+| assets · **wallet** | Bitcoin & Ethereum address balances, activity and transactions, with links to the major chain-analysis explorers. |
+| assets · **image** | Reverse image search from a URL, or drop a file to read EXIF, camera serials and GPS locally — the file never leaves the browser. |
+| threat · **vuln (CVE)** | CVE description, CVSS severity, EPSS exploit probability, weaknesses and references (NVD + FIRST). |
+| research · **records** | Public-record & news research — company registries, courts, sanctions, academia, archives — plus live Hacker News and GitHub mentions. |
+| research · **search (dorks)** | Query builder for search-engine operators (site, filetype, intitle, date ranges…) across Google, Bing, DuckDuckGo and Yandex. |
+| tools · **decoders** | Offline base64 / URL / hex / binary, SHA hashes, rot13, IOC defang/refang, timestamp and JWT decoding — all in-browser. |
+| **graph** | A live investigation graph: every entity you open becomes a node and pivots draw the links. Drag to arrange, click to reopen, export as JSON. |
+| **settings** | Store optional API keys (HIBP, Shodan, VirusTotal, Etherscan, IPinfo, urlscan), switch dark/light, pause the graph, and clear your data. |
+
+Results cross-link: click an IP, domain, email or handle in any result to pivot into that tool — and the move is recorded in the graph. Every search is a shareable URL (`#domain/example.com`).
+
+## API keys (optional)
+
+Most tools work with no setup. Adding your own free keys under **Settings** unlocks richer live data (e.g. email breach search, Ethereum lookups). Keys are stored only in your browser's localStorage and are sent only to their own service.
 
 ## Deploy on GitHub Pages
 
