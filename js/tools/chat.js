@@ -3,6 +3,7 @@ import * as ai from '../ai.js';
 import * as be from '../backend.js';
 import { graph, getCase, currentUser } from '../store.js';
 import { extractEntities, KINDS } from './extract.js';
+import { aiGateMessage } from '../gate.js';
 
 const SYSTEM = `You are the research assistant inside feddedosint, a client-side OSINT toolkit.
 Help the investigator plan and interpret open-source, public-data research: domains, IPs, ASNs,
@@ -64,8 +65,8 @@ export default {
     }
     const info = await be.health(true);
     if (!info?.ai) return card('ai unavailable', { wide: true }, muted('The backend is connected but no AI model is configured on it (set GEMINI_KEY and AI_MODEL on the Worker).'));
-    if (!be.isLoggedIn()) return card('sign in to chat', { wide: true },
-      muted('The AI is for signed-in users so it uses the owner’s key safely.'), h('p', {}, 'Go to the ', pivot('account', '', 'account'), ' tab to sign up or log in.'));
+    const g = aiGateMessage();
+    if (g) return card(g.title, { wide: true }, muted(g.body), g.action);
 
     const log = h('div', { class: 'chatlog' });
     const render = () => {
@@ -113,7 +114,7 @@ export default {
 
     if (!history.length) {
       log.append(h('div', { class: 'chatempty' },
-        muted(`Signed in as ${currentUser()?.username}. Ask me to plan an investigation, interpret a result, or suggest the next lookup.`),
+        muted(`Signed in as ${currentUser()?.login || "you"}. Ask me to plan an investigation, interpret a result, or suggest the next lookup.`),
         h('div', { class: 'chipflow' }, ...SUGGEST.map(s => {
           const b = h('button', { class: 'chip', type: 'button' }, s);
           b.onclick = () => { ta.value = s; submit(); };

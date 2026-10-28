@@ -4,6 +4,7 @@ import { collect, canon, canCollect } from '../collect.js';
 import { trackNode, trackEdge, getCase, setCase } from '../store.js';
 import * as ai from '../ai.js';
 import * as be from '../backend.js';
+import { aiGateMessage } from '../gate.js';
 
 const SCOPES = {
   quick: { nodes: 12, depth: 1, concurrency: 4, label: 'quick' },
@@ -131,6 +132,8 @@ export default {
   run(seed) {
     seed = seed.trim();
     if (!seed) throw new Error('enter a domain, IP, URL, email or ASN');
+    const g = aiGateMessage();
+    if (g) return card(g.title, { wide: true }, muted(g.body), g.action);
 
     const scopeSel = h('div', { class: 'segset' }, Object.entries(SCOPES).map(([k, s]) => {
       const b = h('button', { class: 'seg' + (k === scopeKey ? ' on' : ''), type: 'button' }, s.label);

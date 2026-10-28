@@ -864,3 +864,11 @@ button.primary:disabled { opacity: .5; cursor: default; }
 .enginelog .step:first-child { border-top: 0; }
 .enginelog .step .badge { flex: none; }
 .enginelog .step span { overflow-wrap: anywhere; }
+
+/* ---------- account / github ---------- */
+.ghbtn { display: inline-flex; align-items: center; gap: 8px; }
+.ghbtn .icon { width: 17px; height: 17px; }
+.profile { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.avatar-lg { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; background: var(--inset-2); }
+.admintable td { vertical-align: middle; }
+.admintable .row { gap: 6px; flex-wrap: wrap; }

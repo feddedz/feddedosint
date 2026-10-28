@@ -2,30 +2,27 @@ name = "feddedosint-api"
 main = "worker.js"
 compatibility_date = "2025-09-01"
 
-# KV namespace that stores users, sessions and rate-limit counters.
-# Create it once with:  npx wrangler kv namespace create USERS
-# then paste the printed id below.
+# KV namespace (users, sessions, rate-limit counters).
+# Create once:  wrangler kv namespace create USERS   -> paste the id below.
 [[kv_namespaces]]
 binding = "USERS"
 id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
 
 [vars]
-# Exact Gemini model id. Confirm a valid one with:
+# Exact Gemini model id. List valid ones:
 #   curl "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY"
 AI_MODEL = "gemini-2.5-flash"
 
-# Which site origins may call this Worker (comma-separated, no trailing slash).
+# Site origins allowed to call this Worker (comma-separated, no trailing slash).
 ALLOWED_ORIGINS = "https://feddedz.github.io,http://localhost:8000"
 
-# The one account allowed to list signups at /admin/users.
+# Where to send users back after GitHub login (your site, with trailing slash).
+SITE_URL = "https://feddedz.github.io/feddedosint/"
+
+# GitHub login + admin.
 ADMIN_USER = "feddedz"
+GITHUB_CLIENT_ID = "PASTE_YOUR_GITHUB_OAUTH_CLIENT_ID"
 
-# "true" = only signed-in users may use the AI (recommended, protects your quota).
-AI_REQUIRE_AUTH = "true"
-
-# "true" = allow new signups. Set "false" to freeze registration.
-SIGNUP_ENABLED = "true"
-
-# Secrets are NOT set here — set them from the CLI so they never touch the repo:
-#   npx wrangler secret put GEMINI_KEY      (your Gemini API key)
-#   npx wrangler secret put SIGNUP_CODE     (optional invite code to gate signups)
+# Secrets (set from the CLI or the dashboard — never in this file):
+#   wrangler secret put GEMINI_KEY
+#   wrangler secret put GITHUB_CLIENT_SECRET
