@@ -14,6 +14,22 @@ Format:
 
 ---
 
+### 2026-10-29 21:45 UTC — playbook + risk scoring + monitor history
+- New **playbook** tool (intelligence): one target runs a full automated audit workflow — surface
+  mapping, Shodan exposure, dangling-CNAME and mail-auth checks — ending in a single risk-scored,
+  ranked report with copy/export, watch, and next-step pivots. Human reviews; nothing auto-acts.
+- New shared **risk scoring** module (js/risk.js): findings → 0-100 score + severity band, used to
+  rank the playbook report. Service-weighted (DBs/Docker/RDP/etc.), CVE clusters, takeovers, weak mail.
+- **monitor**: now records a change history per watch (timeline card) and a “re-check all” button on
+  the watchlist that re-snapshots every target and logs what changed.
+- Wired playbook into the registry + icon; added .steplog CSS and watchHistory() to the store.
+- Tested headless: playbook scores a target 98/100 (MongoDB/RDP exposed, dangling CNAME, CVE cluster,
+  weak SPF); monitor re-check-all records history; no console errors.
+- files: js/risk.js, js/tools/playbook.js, js/tools/monitor.js, js/store.js, js/app.js, js/icons.js, css/style.css
+- PR: not yet shipped
+
+###
+
 ### 2026-10-29 21:34 UTC — takeover + sweep tools
 - New **takeover** tool: pulls a domain's subdomains from certificate transparency, follows each
   CNAME, and flags dangling / unclaimed third-party targets (GitHub Pages, S3, Heroku, Azure, +15

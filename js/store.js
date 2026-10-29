@@ -132,11 +132,15 @@ export function addWatch(tool, value) {
 }
 export function removeWatch(id) { write(WATCH, watches().filter(w => w.id !== id)); }
 export const isWatched = (tool, value) => watches().some(w => w.id === `${tool}:${value}`);
-export function saveSnapshot(id, snapshot) {
+export function saveSnapshot(id, snapshot, diff) {
   const list = watches();
   const w = list.find(x => x.id === id);
   if (!w) return;
   w.snapshot = snapshot;
   w.checked = Date.now();
+  if (diff && (diff.added?.length || diff.removed?.length)) {
+    w.history = [{ at: Date.now(), added: diff.added, removed: diff.removed }, ...(w.history || [])].slice(0, 50);
+  }
   write(WATCH, list);
 }
+export const watchHistory = id => (watches().find(w => w.id === id)?.history || []);

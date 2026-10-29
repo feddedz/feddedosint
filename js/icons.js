@@ -7,6 +7,7 @@ const P = {
   email: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
   phone: '<rect x="7" y="3" width="10" height="18" rx="2.2"/><path d="M11 18h2"/>',
   breach: '<path d="M12 3l7 3v5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z"/><path d="M12 9v3.5"/><circle cx="12" cy="15.5" r="0.6" fill="currentColor"/>',
+  playbook: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="M4 3l2 2 2-2"/>',
   takeover: '<path d="M12 3l7 3v5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z"/><path d="M9.5 11.5l2 2 3.5-4"/>',
   sweep: '<rect x="3" y="4.5" width="18" height="5" rx="1.3"/><rect x="3" y="14.5" width="18" height="5" rx="1.3"/><path d="M6.5 7h.01M6.5 17h.01M20 11.5l-8 3-8-3"/>',
   monitor: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="8.5"/>',
