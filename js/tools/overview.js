@@ -1,5 +1,6 @@
 import { h, card, muted, badge, isIP } from '../util.js';
 import domain from './domain.js';
+import recon from './recon.js';
 import ip from './ip.js';
 import email from './email.js';
 import username from './username.js';
@@ -15,7 +16,7 @@ import geo from './geo.js';
 import file from './file.js';
 import map from './map.js';
 
-const TOOLS = { domain, ip, email, username, phone, crypto, cve, breach, asn, url, mac, cidr, geo, file, map };
+const TOOLS = { domain, recon, ip, email, username, phone, crypto, cve, breach, asn, url, mac, cidr, geo, file, map };
 
 // Decide the most likely entity types for an input, best guess first.
 export function classify(v) {
@@ -33,7 +34,7 @@ export function classify(v) {
   if (/^([a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64}|[a-f0-9]{128})$/i.test(v)) out.push('file');
   if (/^\+?[\d\s().-]{7,}$/.test(v) && v.replace(/\D/g, '').length >= 7 && !/^\d{1,10}$/.test(v.replace(/\D/g, ''))) out.push('phone');
   if (/^https?:\/\/[^/]+\/./i.test(v) || /^https?:\/\/[^/]+\/?\?/i.test(v)) out.push('url');
-  if (!isIP(bare) && (/^https?:\/\//i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v))) out.push('domain', 'map');
+  if (!isIP(bare) && (/^https?:\/\//i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v))) out.push('domain', 'recon', 'map');
   if (!out.length) out.push('username');
   return [...new Set(out)];
 }

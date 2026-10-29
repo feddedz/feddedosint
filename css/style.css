@@ -425,6 +425,21 @@ button.mini.ghost { background: none; border-color: transparent; }
 .scanbar { height: 4px; border-radius: 3px; background: var(--inset-2); overflow: hidden; margin-bottom: 12px; }
 .scanbar .barfill { height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }
 
+/* recon: stat tiles, data table, findings */
+.statrow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 10px 0 12px; }
+.statcell { border: 1px solid var(--line); border-radius: 10px; background: var(--inset-2); padding: 10px 8px; text-align: center; }
+.statnum { font-size: 22px; font-weight: 600; line-height: 1; }
+.statlbl { margin-top: 5px; }
+.datatable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.datatable th { text-align: left; font-weight: 500; color: var(--dim); padding: 6px 8px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+.datatable td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.datatable td .badge { margin: 1px 3px 1px 0; }
+.datatable tr:hover td { background: rgba(255, 255, 255, 0.03); }
+.risklist { display: flex; flex-direction: column; gap: 6px; }
+.riskrow { display: flex; align-items: flex-start; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--inset-2); font-size: 13px; }
+.riskrow .badge { flex: none; margin-top: 1px; }
+@media (max-width: 640px) { .statrow { grid-template-columns: repeat(3, 1fr); } }
+
 .dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
 .dot.pending { border: 1.5px solid var(--dim); border-top-color: var(--accent); animation: spin .7s linear infinite; width: 10px; height: 10px; margin-top: 5px; }
 .dot.found { background: var(--accent); box-shadow: 0 0 10px rgba(255, 255, 255, 0.7); }
