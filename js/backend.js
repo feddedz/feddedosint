@@ -128,6 +128,7 @@ export async function aiStream(payload, { onThought, onText, signal } = {}) {
   return answer;
 }
 export const fetchUrl = url => api('/fetch', { method: 'POST', auth: true, body: { url }, timeout: 20000 });
+export const fetchBytes = url => api('/fetch', { method: 'POST', auth: true, body: { url, bytes: true }, timeout: 20000 });
 
 // Same existence logic the Worker's /check uses, run on a status code + body (for the /fetch fallback).
 function classify(spec, status, body) {

@@ -352,7 +352,8 @@ async function handleFetch(request, env, user) {
   const g = gate(user, false);
   if (g) return err(GATE_MSG[g], g === 'auth' ? 401 : 403, request, env);
   if (!await rateLimit(env, `fetch:${user.login}`, 150, 60)) return err('rate limit reached', 429, request, env);
-  const { url } = await request.json().catch(() => ({}));
+  const body0 = await request.json().catch(() => ({}));
+  const { url, bytes } = body0;
   let u;
   try { u = new URL(url); } catch { return err('invalid url', 400, request, env); }
   if (!/^https?:$/.test(u.protocol)) return err('only http(s) urls allowed', 400, request, env);
@@ -361,9 +362,16 @@ async function handleFetch(request, env, user) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const res = await fetch(u.href, { redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; feddedosint/1.0)', Accept: 'text/html,application/json,*/*' } });
+    const res = await fetch(u.href, { redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; feddedosint/1.0)', Accept: bytes ? 'image/*,*/*' : 'text/html,application/json,*/*' } });
     const buf = new Uint8Array(await res.arrayBuffer());
     const CAP = 512 * 1024;
+    // Byte mode: return the raw bytes base64-encoded (for favicon hashing etc.), capped.
+    if (bytes) {
+      const slice = buf.subarray(0, Math.min(buf.length, 256 * 1024));
+      let bin = '';
+      for (let i = 0; i < slice.length; i++) bin += String.fromCharCode(slice[i]);
+      return json({ status: res.status, finalUrl: res.url, contentType: res.headers.get('content-type') || '', b64: btoa(bin), truncated: buf.length > slice.length }, 200, request, env);
+    }
     const text = new TextDecoder('utf-8', { fatal: false }).decode(buf.subarray(0, CAP));
     // Expose response headers (useful for server/tech fingerprinting), hiding nothing public.
     const headers = {};

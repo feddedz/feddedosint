@@ -3,12 +3,16 @@
 // work from the same evidence model. Everything comes from public sources.
 
 import { getJSON, dns, reverseName, isIP, normDomain, registrable, rdapEntity, rdapEvent, vcard } from './util.js';
+import { finding } from './risk.js';
+
+// Management/data-store services that should rarely face the public internet.
+const SENSITIVE = { 21:'FTP',22:'SSH',23:'Telnet',135:'MSRPC',139:'NetBIOS',445:'SMB',1433:'MSSQL',1521:'Oracle',2049:'NFS',2375:'Docker',2376:'Docker',3306:'MySQL',3389:'RDP',5432:'Postgres',5601:'Kibana',5900:'VNC',5984:'CouchDB',6379:'Redis',6443:'Kubernetes API',9200:'Elasticsearch',9300:'Elasticsearch',10250:'Kubelet',11211:'Memcached',15672:'RabbitMQ',27017:'MongoDB',27018:'MongoDB' };
 
 const ev = (claim, source, url) => ({ claim, source, url, at: Date.now() });
 const uniq = arr => [...new Set(arr)];
 
 async function collectDomain(d) {
-  const facts = [], neighbors = [], evidence = [];
+  const facts = [], neighbors = [], evidence = [], findings = [];
   const [a, aaaa, mx, ns, txt] = await Promise.all([
     dns(d, 'A').catch(() => []), dns(d, 'AAAA').catch(() => []), dns(d, 'MX').catch(() => []),
     dns(d, 'NS').catch(() => []), dns(d, 'TXT').catch(() => []),
@@ -20,6 +24,8 @@ async function collectDomain(d) {
   for (const r of ns) { facts.push(['NS', r.data]); neighbors.push({ tool: 'domain', value: r.data, rel: 'nameserver' }); }
   const spf = txt.find(r => /^v=spf1/i.test(r.data));
   if (spf) facts.push(['SPF', spf.data]);
+  if (mx.length && !spf) findings.push(finding('weak-mail', { domain: d, why: 'Domain accepts mail but has no SPF record — easier to spoof.' }));
+  else if (spf && !/-all/.test(spf.data)) findings.push(finding('weak-mail', { domain: d, why: `SPF is permissive (${spf.data.match(/[-~?+]all/)?.[0] || 'no -all'}).` }));
 
   const r = await getJSON(`https://rdap.org/domain/${encodeURIComponent(d)}`).catch(() => null);
   if (r?.ok && r.data) {
@@ -29,11 +35,11 @@ async function collectDomain(d) {
     if (created) { facts.push(['registered', created.slice(0, 10)]); evidence.push(ev(`${d} was registered on ${created.slice(0, 10)}`, 'RDAP', `https://rdap.org/domain/${d}`)); }
   }
   const summary = `${d}: ${a.length + aaaa.length} address(es), ${mx.length} mail server(s), ${ns.length} nameserver(s)`;
-  return { ok: true, summary, facts, neighbors, evidence };
+  return { ok: true, summary, facts, neighbors, evidence, findings };
 }
 
 async function collectIP(ip) {
-  const facts = [], neighbors = [], evidence = [];
+  const facts = [], neighbors = [], evidence = [], findings = [];
   const g = await getJSON(`https://ipwho.is/${encodeURIComponent(ip)}`).catch(() => null);
   if (g?.data?.success) {
     const d = g.data, loc = [d.city, d.country].filter(Boolean).join(', ');
@@ -48,11 +54,14 @@ async function collectIP(ip) {
   const idb = await getJSON(`https://internetdb.shodan.io/${encodeURIComponent(ip)}`).catch(() => null);
   if (idb?.ok && idb.data?.ports) {
     if (idb.data.ports.length) { facts.push(['open ports', idb.data.ports.join(', ')]); evidence.push(ev(`${ip} has ${idb.data.ports.length} port(s) seen open by Shodan: ${idb.data.ports.join(', ')}`, 'Shodan InternetDB', `https://internetdb.shodan.io/${ip}`)); }
+    for (const p of idb.data.ports) if (SENSITIVE[p]) findings.push(finding('sensitive-service', { ip, port: p, service: SENSITIVE[p] }));
     for (const v of (idb.data.vulns || []).slice(0, 20)) neighbors.push({ tool: 'cve', value: v, rel: 'potentially vulnerable to' });
     for (const hn of (idb.data.hostnames || [])) neighbors.push({ tool: 'domain', value: hn, rel: 'hostname' });
     if (idb.data.vulns?.length) facts.push(['known CVEs', idb.data.vulns.slice(0, 10).join(', ')]);
+    if ((idb.data.vulns || []).length >= 3) findings.push(finding('cve-cluster', { ip, count: idb.data.vulns.length }));
+    else for (const v of (idb.data.vulns || [])) findings.push(finding('cve', { ip, cve: v }));
   }
-  return { ok: true, summary: `${ip}: ${facts.find(f => f[0] === 'location')?.[1] || 'location unknown'}`, facts, neighbors, evidence };
+  return { ok: true, summary: `${ip}: ${facts.find(f => f[0] === 'location')?.[1] || 'location unknown'}`, facts, neighbors, evidence, findings };
 }
 
 async function collectASN(input) {
@@ -97,9 +106,9 @@ export const canCollect = tool => tool in COLLECTORS;
 
 export async function collect(tool, value) {
   const fn = COLLECTORS[tool];
-  if (!fn) return { ok: false, summary: `${tool} not auto-collectable`, facts: [], neighbors: [], evidence: [] };
+  if (!fn) return { ok: false, summary: `${tool} not auto-collectable`, facts: [], neighbors: [], evidence: [], findings: [] };
   try { return await fn(value); }
-  catch (e) { return { ok: false, summary: `failed: ${e.message}`, facts: [], neighbors: [], evidence: [] }; }
+  catch (e) { return { ok: false, summary: `failed: ${e.message}`, facts: [], neighbors: [], evidence: [], findings: [] }; }
 }
 
 // Canonicalise a value so the same entity is not visited twice.

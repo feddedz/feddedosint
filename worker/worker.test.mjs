@@ -49,6 +49,7 @@ globalThis.fetch = async (url, opts) => {
     if (OVERLOADED.has(m)) return new Response(JSON.stringify({ error: { message: 'This model is currently experiencing high demand.' } }), { status: 503 });
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'AI OK' }] } }], usageMetadata: {} }), { status: 200 });
   }
+  if (url.includes('favicon.test/favicon.ico')) return new Response(new Uint8Array([1,2,3,4,5]).buffer, { status: 200, headers: { 'content-type': 'image/x-icon' } });
   return realFetch(url, opts);
 };
 
@@ -192,6 +193,16 @@ async function loginAs(env, login) {
   const aliceTok = await loginAs(env, 'alice'); // pending
   ok((await call(env, 'POST', '/check', { username: 'bob', sites }, aliceTok)).status === 403, 'check gated for pending user');
   ok((await call(env, 'POST', '/check', {}, adminTok)).status === 400, 'check needs username + sites');
+}
+
+// --- /fetch byte mode (favicon) ---
+{
+  const env = baseEnv();
+  const adminTok = await loginAs(env, 'feddedz');
+  const r = await call(env, 'POST', '/fetch', { url: 'https://favicon.test/favicon.ico', bytes: true }, adminTok);
+  ok(r.status === 200 && r.data.b64 === btoa(String.fromCharCode(1,2,3,4,5)), 'fetch byte mode returns base64 of raw bytes');
+  const r2 = await call(env, 'POST', '/fetch', { url: 'http://localhost/favicon.ico', bytes: true }, adminTok);
+  ok(r2.status === 400, 'fetch byte mode still SSRF-guarded');
 }
 
 // --- CORS ---

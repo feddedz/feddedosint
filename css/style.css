@@ -1000,3 +1000,5 @@ body.locked .app, body.locked .palette { display: none; }
 .steplog .step:first-child { border-top: 0; }
 .steplog .step .badge { flex: none; }
 .steplog .step span { overflow-wrap: anywhere; }
+
+.notespre { white-space: pre-wrap; font: inherit; margin: 0; color: var(--text); }

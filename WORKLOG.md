@@ -14,7 +14,23 @@ Format:
 
 ---
 
-### 2026-10-29 21:45 UTC — playbook + risk scoring + monitor history
+### 2026-10-29 21:53 UTC — risk scoring in engine/sweep, dossier export, favicon-hash
+- **Risk scoring everywhere:** collectors (js/collect.js) now emit structured findings; the
+  **engine** shows a ranked risk-posture card and feeds it to the AI, and **sweep** shows a posture
+  score. Same js/risk.js the playbook uses.
+- New **dossier** tool (workspace): compiles the investigation graph + case notes into one
+  infrastructure report (assets by type, relationships, notes) with copy-Markdown / print-PDF /
+  export-JSON. No new network calls.
+- New **favicon** tool (network): computes a site's Shodan mmh3 favicon hash and builds the
+  http.favicon.hash: pivot (+ Shodan link). New js/mmh3.js (verified bit-exact vs python mmh3 and
+  base64.encodebytes). Needs raw icon bytes, so WORKER CHANGED: /fetch now accepts bytes:true and
+  returns base64 (SSRF-guarded, 256 KB cap). Worker test added.
+- files: js/collect.js, js/tools/engine.js, js/tools/sweep.js, js/tools/dossier.js,
+  js/tools/favicon.js, js/mmh3.js, js/backend.js, js/app.js, js/icons.js, css/style.css,
+  worker/worker.js, worker/worker.test.mjs
+- PR: not yet shipped  ·  **owner must re-paste worker.js** (Cloudflare -> Edit code -> Deploy)
+
+### ### 2026-10-29 21:45 UTC — playbook + risk scoring + monitor history
 - New **playbook** tool (intelligence): one target runs a full automated audit workflow — surface
   mapping, Shodan exposure, dangling-CNAME and mail-auth checks — ending in a single risk-scored,
   ranked report with copy/export, watch, and next-step pivots. Human reviews; nothing auto-acts.

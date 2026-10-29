@@ -5,6 +5,7 @@ import { trackNode, trackEdge, getCase, setCase } from '../store.js';
 import * as ai from '../ai.js';
 import * as be from '../backend.js';
 import { aiGateMessage } from '../gate.js';
+import { posture, rank, toneOf } from '../risk.js';
 
 const SCOPES = {
   quick: { nodes: 12, depth: 1, concurrency: 4, label: 'quick' },
@@ -47,7 +48,7 @@ async function investigate(container, seed, statusEl, logEl) {
 
   const seen = new Set([canon(start, seed)]);
   const queue = [{ tool: start, value: seed, depth: 0 }];
-  const visited = [], evidence = [];
+  const visited = [], evidence = [], findings = [];
   const log = (node, text, tone) => {
     if (!container.isConnected) return;
     logEl.append(h('div', { class: 'step' }, badge(node, tone || 'muted'), h('span', {}, text)));
@@ -63,6 +64,7 @@ async function investigate(container, seed, statusEl, logEl) {
       if (!container.isConnected) return;
       visited.push(node);
       evidence.push(...res.evidence);
+      findings.push(...(res.findings || []));
       log(node.tool, `${node.value} — ${res.summary}`, res.ok ? 'ok' : 'warn');
       for (const nb of res.neighbors) {
         trackEdge(node.tool, node.value, nb.tool, nb.value);
@@ -91,12 +93,19 @@ async function investigate(container, seed, statusEl, logEl) {
     evidence.length ? h('div', { class: 'breach-list' }, evidence.map(e => h('div', { class: 'breach-item' },
       h('div', {}, e.claim), h('div', { class: 'muted small' }, 'source: ', e.url ? ext(e.url, e.source) : e.source, ' · ', fmtDate(e.at)))))
       : muted('no structured evidence gathered.'));
+  const p = posture(findings);
+  const riskCard = card('risk posture', { wide: true, actions: badge(`${p.score}/100 · ${p.sev}`, toneOf(p.sev)) },
+    findings.length
+      ? h('table', { class: 'records' }, h('tbody', {}, rank(findings).map(f => h('tr', {},
+          h('td', {}, badge(f.sev, toneOf(f.sev))),
+          h('td', {}, h('strong', {}, f.title), h('div', { class: 'muted small' }, f.why))))))
+      : muted('No exposure findings surfaced from the public collectors.'));
   const pivotsCard = card('visualise', {},
     h('p', {}, 'This run was added to your ', pivot('graph', '', 'investigation graph'), ' and can be plotted on the ', pivot('map', '', 'map'), '.'),
     h('p', { class: 'muted small' }, 'click any entity above to pivot into its full tool.'));
 
   const resultWrap = h('div');
-  container.append(grid(entityCard, evidenceCard, pivotsCard), resultWrap);
+  container.append(grid(riskCard, entityCard, evidenceCard, pivotsCard), resultWrap);
 
   // AI analysis layered on top, if available.
   if (be.isLoggedIn() && await ai.available().catch(() => false)) {
@@ -104,7 +113,7 @@ async function investigate(container, seed, statusEl, logEl) {
     resultWrap.append(aiCard);
     const slot = aiCard.querySelector('.body');
     try {
-      const context = `Seed: ${seed}\n\nEntities:\n${Object.entries(byTool).map(([t, vs]) => `${t}: ${vs.join(', ')}`).join('\n')}\n\nEvidence:\n${evidence.slice(0, 80).map(e => `- ${e.claim} [${e.source}]`).join('\n') || '(none)'}`;
+      const context = `Seed: ${seed}\n\nRisk posture: ${p.score}/100 (${p.sev})\nFindings:\n${rank(findings).slice(0, 20).map(f => `- [${f.sev}] ${f.title}: ${f.why}`).join('\n') || '(none)'}\n\nEntities:\n${Object.entries(byTool).map(([t, vs]) => `${t}: ${vs.join(', ')}`).join('\n')}\n\nEvidence:\n${evidence.slice(0, 80).map(e => `- ${e.claim} [${e.source}]`).join('\n') || '(none)'}`;
       const reply = await ai.ask({ system: AN_SYSTEM, prompt: context, temperature: 0.3, maxOutputTokens: 2000 });
       slot.replaceChildren(mdLite(reply));
     } catch (e) {
