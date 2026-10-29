@@ -361,11 +361,14 @@ async function handleFetch(request, env, user) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const res = await fetch(u.href, { redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': 'feddedosint/1.0', Accept: 'text/html,application/json,*/*' } });
+    const res = await fetch(u.href, { redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; feddedosint/1.0)', Accept: 'text/html,application/json,*/*' } });
     const buf = new Uint8Array(await res.arrayBuffer());
     const CAP = 512 * 1024;
     const text = new TextDecoder('utf-8', { fatal: false }).decode(buf.subarray(0, CAP));
-    return json({ status: res.status, finalUrl: res.url, contentType: res.headers.get('content-type') || '', truncated: buf.length > CAP, body: text }, 200, request, env);
+    // Expose response headers (useful for server/tech fingerprinting), hiding nothing public.
+    const headers = {};
+    for (const [k, v] of res.headers) headers[k] = v.length > 1024 ? v.slice(0, 1024) : v;
+    return json({ status: res.status, finalUrl: res.url, contentType: res.headers.get('content-type') || '', headers, truncated: buf.length > CAP, body: text }, 200, request, env);
   } catch (e) {
     return err(e.name === 'AbortError' ? 'the site timed out' : 'fetch failed', 502, request, env);
   } finally { clearTimeout(timer); }
