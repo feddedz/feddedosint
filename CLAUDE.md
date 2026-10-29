@@ -84,7 +84,8 @@ export default {
 ## 4. Current tools
 
 - **search** (overview) — detects input type, runs the best tool, offers related ones.
-- **identity:** username (auto deep-scan ~700 sites + rich API checks), email, phone, breach.
+- **identity:** username (auto deep-scan ~700 sites + rich API checks), ogu (OG-username finder:
+  availability across popular sites + games, wildcard handle-hunting), email, phone, breach.
 - **network:** recon (attack-surface mapper), monitor (change snapshots + alerts), sweep (bulk
   ASN/CIDR exposure), domain, ip, asn, url, mac, cidr, takeover (dangling-CNAME audit),
   favicon (Shodan favicon-hash pivot), wayback (Internet Archive CDX endpoint harvester).
