@@ -14,6 +14,22 @@ Format:
 
 ---
 
+### 2026-10-29 21:34 UTC — takeover + sweep tools
+- New **takeover** tool: pulls a domain's subdomains from certificate transparency, follows each
+  CNAME, and flags dangling / unclaimed third-party targets (GitHub Pages, S3, Heroku, Azure, +15
+  more) — DNS-level signals always, live unclaimed-fingerprint confirmation via the proxy when
+  approved. Ranked, with remediation note.
+- New **sweep** tool: bulk exposure over an ASN (BGPView prefixes) or IPv4 CIDR — expands to hosts
+  (capped 512), queries Shodan InternetDB per IP, aggregates open ports, CVEs and sensitive services,
+  with a port histogram and map pivot.
+- Wired both into the network group, launcher and icons.
+- Tested headless: takeover flags an unclaimed GitHub Pages host; sweep (CIDR + ASN) aggregates
+  ports/CVEs/sensitive services; no console errors.
+- files: js/tools/takeover.js, js/tools/sweep.js, js/app.js, js/icons.js
+- PR: not yet shipped
+
+###
+
 ### 2026-10-29 21:04 UTC — monitor + wayback tools (power features)
 - New **monitor** tool: snapshots a domain/IP's public footprint (CT subdomains, DNS, open ports,
   CVEs) and diffs each re-check against the last, flagging new exposure as ranked alerts. Watchlist
