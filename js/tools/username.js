@@ -1,9 +1,9 @@
-import { h, getJSON, card, ext, linkGroups, copyBtn, grid, fmtDate, fmtNum, muted, badge } from '../util.js';
+import { h, getJSON, card, ext, copyBtn, grid, fmtDate, fmtNum, muted, badge } from '../util.js';
 import { SITES } from '../sites.js';
 import * as be from '../backend.js';
 
-// Live checks against public APIs that allow browser (CORS) requests.
-// Each returns { state: 'found' | 'none' | 'unknown', info?: [], avatar? }.
+// Rich checks against public APIs that allow browser (CORS) requests — these return real
+// profile detail (name, bio, followers, join date) and run client-side with no backend.
 const FOUND = (info = [], avatar) => ({ state: 'found', info: info.filter(Boolean), avatar });
 const NONE = { state: 'none' };
 
@@ -61,7 +61,7 @@ const live = [
     },
   },
   {
-    name: 'Mastodon (.social)', url: u => `https://mastodon.social/@${u}`,
+    name: 'Mastodon', url: u => `https://mastodon.social/@${u}`,
     async check(u) {
       const r = await getJSON(`https://mastodon.social/api/v1/accounts/lookup?acct=${encodeURIComponent(u)}`);
       if (r.status === 404) return NONE;
@@ -109,7 +109,6 @@ const live = [
       const r = await getJSON(`https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(u.toLowerCase())}&size=5`);
       if (!r.ok) throw 0;
       const objs = r.data?.objects || [];
-      // the search is fuzzy, so confirm the exact maintainer name
       const exact = objs.filter(o => o.package.maintainers?.some(m => m.username === u.toLowerCase()));
       return exact.length ? FOUND([`${fmtNum(r.data.total)} packages`, exact.map(o => o.package.name).join(', ')]) : NONE;
     },
@@ -136,171 +135,163 @@ const live = [
   },
 ];
 
-function liveRow(site, u) {
-  const status = h('span', { class: 'dot pending', title: 'checking' });
-  const detail = h('div', { class: 'detail muted' }, 'checking…');
-  const avatar = h('div', { class: 'avatar' });
-  const row = h('div', { class: 'liverow pending' }, status, avatar,
-    h('div', { class: 'main' }, ext(site.url(encodeURIComponent(u)), site.name), detail));
+// Big platforms to surface first when results come in (and to prioritise in the capped fallback).
+const POPULAR = new Set(['instagram', 'tiktok', 'x', 'twitter', 'youtube', 'facebook', 'snapchat', 'pinterest', 'twitch',
+  'steam', 'spotify', 'soundcloud', 'telegram', 'tumblr', 'medium', 'patreon', 'onlyfans', 'linktree', 'cash app', 'venmo',
+  'discord', 'vsco', 'flickr', 'vimeo', 'dribbble', 'behance', 'deviantart', 'replit', 'codepen', 'kaggle', 'docker hub',
+  'hackerone', 'buymeacoffee', 'ko-fi', 'gumroad', 'kick', 'roblox', 'xbox gamertag', 'wattpad', 'goodreads', 'letterboxd',
+  'last.fm', 'bandcamp', 'about.me', 'gravatar', 'paypal', 'fiverr', 'etsy', 'ebay', 'imgur', 'quora', 'pastebin', 'trello']);
 
-  const done = site.check(u).catch(() => ({ state: 'unknown' })).then(res => {
-    row.className = `liverow ${res.state}`;
-    status.className = `dot ${res.state}`;
-    status.title = res.state;
-    if (res.state === 'found') {
-      detail.replaceChildren(res.info.length ? res.info.join(' · ') : 'account exists');
-      detail.className = 'detail';
-      if (res.avatar) avatar.append(h('img', { src: res.avatar, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer', onerror: e => e.target.remove() }));
-    } else if (res.state === 'none') {
-      detail.textContent = 'not found';
-    } else {
-      detail.textContent = 'could not check automatically — open to verify';
-    }
-    return res.state;
-  });
-  return { row, done };
-}
+const liveNames = new Set(live.map(s => s.name.toLowerCase()));
 
-// ---------- deep scan across the full WhatsMyName site list ----------
-
-function scanRow(spec, u, state, status) {
+// A single result row. Found rows are pulled to the top; not-found rows are never created.
+function makeRow(list, name, url, cat, state, applyFilter) {
   const dot = h('span', { class: `dot ${state}`, title: state });
-  const url = spec.u.replace(/\{u\}/g, encodeURIComponent(u));
-  const detail = state === 'found' ? 'profile exists'
-    : state === 'unknown' ? `could not verify${status ? ` (HTTP ${status})` : ''} — open to check`
-    : 'not found';
-  return h('div', { class: `liverow ${state}` }, dot, h('div', { class: 'avatar' }),
-    h('div', { class: 'main' }, ext(url, spec.n), badge(spec.c, 'muted'), h('div', { class: 'detail muted' }, detail)));
-}
-
-function deepScanCard(u) {
-  const enc = encodeURIComponent(u);
-  const adult = h('input', { type: 'checkbox' });
-  const filter = h('select', { class: 'mini' },
-    h('option', { value: 'found' }, 'found only'),
-    h('option', { value: 'open' }, 'found + unverified'),
-    h('option', { value: 'all' }, 'everything'));
-  const startBtn = h('button', { class: 'mini', type: 'button' }, `deep scan ${SITES.length} sites`);
-  const stopBtn = h('button', { class: 'mini', type: 'button', hidden: true }, 'stop');
-  const bar = h('div', { class: 'barfill' });
-  const progress = h('div', { class: 'scanbar' }, bar);
-  const summary = h('span', { class: 'muted small' }, `${SITES.length} sites ready`);
-  const list = h('div', { class: 'livelist' });
-  const found = [];               // collected hits, in order
-  const copyFound = copyBtn(() => found.map(f => `${f.n}: ${f.url}`).join('\n') || 'no hits yet', 'copy found');
-
-  const relabel = () => {
-    const f = filter.value;
-    list.querySelectorAll('.liverow').forEach(r => {
-      const st = r.dataset.state;
-      r.hidden = !(f === 'all' || (f === 'open' && st !== 'none') || (f === 'found' && st === 'found'));
-    });
+  const av = h('div', { class: 'avatar' });
+  const detail = h('div', { class: 'detail muted' }, state === 'pending' ? 'checking…' : '');
+  const el = h('div', { class: `liverow ${state}`, dataset: { state } }, dot, av,
+    h('div', { class: 'main' }, ext(url, name), cat ? badge(cat, 'muted') : null, detail));
+  if (state === 'found') list.prepend(el); else list.append(el);
+  applyFilter(el);
+  return {
+    el,
+    update(st, info, avatar) {
+      if (st === 'none') { el.remove(); return; }   // not-found is counted, never shown
+      el.className = `liverow ${st}`; el.dataset.state = st;
+      dot.className = `dot ${st}`; dot.title = st;
+      detail.textContent = info || (st === 'found' ? 'account exists' : st === 'unknown' ? 'could not verify automatically — open to check' : 'not found');
+      detail.className = 'detail' + (info ? '' : ' muted');
+      if (avatar) av.append(h('img', { src: avatar, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer', onerror: e => e.target.remove() }));
+      if (st === 'found') list.prepend(el);
+      applyFilter(el);
+    },
   };
-  filter.addEventListener('change', relabel);
-
-  let controller = null;
-  const setRunning = on => {
-    startBtn.hidden = on; stopBtn.hidden = !on;
-    adult.disabled = on;
-  };
-
-  async function run() {
-    const set = SITES.filter(s => adult.checked || s.c !== 'adult');
-    list.replaceChildren(); found.length = 0;
-    controller = new AbortController();
-    setRunning(true);
-    let checked = 0, nFound = 0;
-    const tick = () => {
-      bar.style.width = `${Math.round((checked / set.length) * 100)}%`;
-      summary.textContent = `${checked}/${set.length} checked · ${nFound} found`;
-    };
-    tick();
-    try {
-      await be.deepScan(u, set, {
-        signal: controller.signal,
-        onBatch(batch, results) {
-          batch.forEach((spec, i) => {
-            const res = results[i] || { state: 'unknown' };
-            checked++;
-            if (res.state === 'found') {
-              nFound++;
-              found.push({ n: spec.n, url: res.url || spec.u.replace(/\{u\}/g, enc), cat: spec.c });
-            }
-            const row = scanRow(spec, u, res.state, res.status);
-            row.dataset.state = res.state;
-            // keep found rows at the top, everything else after
-            if (res.state === 'found') list.prepend(row); else list.append(row);
-          });
-          tick(); relabel();
-        },
-      });
-      summary.textContent = `done · ${nFound} found across ${set.length} sites`;
-    } catch (e) {
-      summary.textContent = 'scan error — ' + (e?.message || 'failed');
-    } finally {
-      bar.style.width = '100%';
-      setRunning(false);
-    }
-  }
-
-  startBtn.addEventListener('click', run);
-  stopBtn.addEventListener('click', () => { controller?.abort(); summary.textContent += ' · stopped'; setRunning(false); });
-
-  const opts = h('div', { class: 'scanopts' },
-    h('label', { class: 'muted small' }, adult, ' include adult sites'),
-    h('label', { class: 'muted small' }, 'show ', filter),
-    copyFound);
-
-  return card('deep scan — every site', { wide: true, actions: h('div', { class: 'actions' }, summary, startBtn, stopBtn) },
-    muted(`Runs ${SITES.length} existence checks server-side (real status codes + page markers, no browser blocking). Results stream in as they finish; a hit means the handle is registered there, not necessarily by the same person.`),
-    opts, progress, list);
 }
 
 export default {
   id: 'username',
   label: 'username',
   placeholder: 'username or handle',
-  intro: 'Checks a handle live against public APIs, then deep-scans ~700 platforms server-side for every account using that name.',
+  intro: 'Type a handle and it automatically checks it against ~700 platforms, showing every account that uses the name.',
   examples: ['torvalds', 'gargron'],
 
   run(raw) {
     const u = raw.trim().replace(/^@/, '');
     if (!u) throw new Error('enter a username');
     if (/\s/.test(u)) throw new Error('usernames cannot contain spaces — try the search tab for full names');
+    const enc = encodeURIComponent(u);
 
-    const summary = h('span', { class: 'muted' }, 'checking…');
-    const rows = live.map(s => liveRow(s, u));
-    Promise.all(rows.map(r => r.done)).then(states => {
-      const n = s => states.filter(x => x === s).length;
-      summary.textContent = `${n('found')} found · ${n('none')} not found · ${n('unknown')} unverified`;
-      // float hits to the top
-      const list = rows[0].row.parentElement;
-      for (const state of ['unknown', 'none', 'found']) {
-        rows.filter((r, i) => states[i] === state).reverse().forEach(r => list.prepend(r.row));
+    const summary = h('span', { class: 'muted small' }, 'starting…');
+    const stopBtn = h('button', { class: 'mini', type: 'button', hidden: true }, 'stop');
+    const showUnverified = h('input', { type: 'checkbox' });
+    const includeAdult = h('input', { type: 'checkbox' });
+    const bar = h('div', { class: 'barfill' });
+    const list = h('div', { class: 'livelist' });
+    const note = h('p', { class: 'muted small', hidden: true });
+    const found = [];
+    const copyFound = copyBtn(() => found.map(f => `${f.n}: ${f.url}`).join('\n') || 'no accounts found yet', 'copy found');
+
+    const applyFilter = el => {
+      const st = el.dataset.state;
+      // found + still-checking are always shown; not-found is hidden; unverified only when asked
+      el.hidden = st === 'none' || (st === 'unknown' && !showUnverified.checked);
+    };
+    const refilter = () => list.querySelectorAll('.liverow').forEach(applyFilter);
+    showUnverified.addEventListener('change', refilter);
+
+    let liveDone = 0, scanTotal = 0, scanDone = 0;
+    const tick = () => {
+      const f = list.querySelectorAll('.liverow.found').length;
+      const unv = list.querySelectorAll('.liverow.unknown').length;
+      const total = live.length + scanTotal;
+      const done = liveDone + scanDone;
+      bar.style.width = `${total ? Math.round((done / total) * 100) : 5}%`;
+      summary.textContent = `${f} found · ${unv} to verify · ${done}/${total} checked`;
+    };
+
+    let controller = null;
+    const setRunning = on => { stopBtn.hidden = !on; includeAdult.disabled = on; bar.classList.toggle('run', on); };
+
+    // --- client-side rich checks (always run, no backend needed) ---
+    function runLive() {
+      for (const site of live) {
+        const row = makeRow(list, site.name, site.url(enc), 'api', 'pending', applyFilter);
+        site.check(u).then(res => (res.state === 'found' ? res : res || NONE)).catch(() => ({ state: 'unknown' }))
+          .then(res => {
+            liveDone++;
+            if (res.state === 'found') { row.update('found', res.info?.length ? res.info.join(' · ') : '', res.avatar); found.push({ n: site.name, url: site.url(enc) }); }
+            else row.update(res.state === 'none' ? 'none' : 'unknown');
+            tick();
+          });
       }
-    });
-
-    const cards = [
-      card('live checks — rich profiles', { wide: true, actions: summary }, h('div', { class: 'livelist' }, rows.map(r => r.row))),
-    ];
-
-    // Deep scan needs the backend (server-side fetch) and an approved account.
-    if (be.backendConfigured() && be.isApproved()) {
-      cards.push(deepScanCard(u));
-    } else {
-      const why = !be.backendConfigured() ? 'the backend is not configured'
-        : !be.isLoggedIn() ? 'sign in with GitHub to run it'
-        : 'your account needs admin approval to run it';
-      const enc = encodeURIComponent(u);
-      const pub = SITES.filter(s => s.c !== 'adult');
-      const byCat = {};
-      for (const s of pub) (byCat[s.c] ||= []).push([s.n, s.u.replace(/\{u\}/g, enc)]);
-      cards.push(card('manual checks', { wide: true, collapsed: true,
-        actions: copyBtn(() => pub.map(s => `${s.n}: ${s.u.replace(/\{u\}/g, enc)}`).join('\n'), 'copy all') },
-        muted(`Deep scan is unavailable (${why}). Meanwhile, open these ${pub.length} sites manually — a profile that loads means the handle is taken there.`),
-        linkGroups(Object.entries(byCat).map(([group, items]) => ({ group, items })))));
     }
 
-    return grid(...cards);
+    // --- backend deep scan across the full list ---
+    async function runScan() {
+      const set = SITES
+        .filter(s => (includeAdult.checked || s.c !== 'adult') && !liveNames.has(s.n.toLowerCase()))
+        .sort((a, b) => (POPULAR.has(b.n.toLowerCase()) ? 1 : 0) - (POPULAR.has(a.n.toLowerCase()) ? 1 : 0));
+      scanTotal = set.length; scanDone = 0;
+      controller = new AbortController();
+      setRunning(true); tick();
+      try {
+        const r = await be.deepScan(u, set, {
+          signal: controller.signal,
+          onMode(mode, error) {
+            if (mode === 'blocked') { note.hidden = false; note.textContent = 'deep scan blocked — ' + (error || 'account not approved'); }
+            else if (mode === 'fetch') { note.hidden = false; note.textContent = 'running a limited scan through /fetch — re-deploy the Worker (it adds /check) to scan all ~700 sites fast.'; }
+            else note.hidden = true;
+          },
+          onBatch(batch, results) {
+            batch.forEach((spec, i) => {
+              const res = results[i] || { state: 'unknown' };
+              scanDone++;
+              const url = res.url || spec.u.replace(/\{u\}/g, enc);
+              if (res.state === 'found') { makeRow(list, spec.n, url, spec.c, 'found', applyFilter); found.push({ n: spec.n, url }); }
+              else if (res.state === 'unknown') makeRow(list, spec.n, url, spec.c, 'unknown', applyFilter);
+              // 'none' is counted only — no row, no clutter
+            });
+            tick();
+          },
+        });
+        scanDone = scanTotal;
+        if (r?.partial) { note.hidden = false; note.textContent = `limited scan: checked the top ${r.scanned} sites. Re-deploy the Worker (adds /check) to scan all ~700 automatically.`; }
+        tick();
+      } catch (e) {
+        note.hidden = false; note.textContent = 'scan error — ' + (e?.message || 'failed');
+      } finally {
+        setRunning(false);
+        summary.textContent = summary.textContent.replace(/checked$/, 'checked · done');
+      }
+    }
+
+    function start() {
+      controller?.abort();
+      list.replaceChildren(); found.length = 0; liveDone = 0; scanDone = 0; scanTotal = 0;
+      runLive();
+      if (be.backendConfigured() && be.isApproved()) runScan();
+      else {
+        note.hidden = false;
+        note.textContent = be.backendConfigured()
+          ? (be.isLoggedIn() ? 'sign-in approved only: the full 700-site auto-scan needs admin approval. The API checks above still run.' : 'sign in with GitHub to auto-scan all ~700 sites. The API checks above still run.')
+          : 'connect the backend in settings to auto-scan all ~700 sites. The API checks above still run.';
+        tick();
+      }
+    }
+
+    includeAdult.addEventListener('change', start);
+    stopBtn.addEventListener('click', () => { controller?.abort(); setRunning(false); note.hidden = false; note.textContent = 'scan stopped.'; });
+
+    // Kick everything off once the card is in the DOM.
+    requestAnimationFrame(start);
+
+    const controls = h('div', { class: 'scanopts' },
+      h('label', { class: 'muted small' }, showUnverified, ' show unverified'),
+      h('label', { class: 'muted small' }, includeAdult, ' include adult sites'),
+      copyFound);
+
+    return grid(card('accounts', { wide: true, actions: h('div', { class: 'actions' }, summary, stopBtn) },
+      muted('Checks run automatically — rich profile data from open APIs first, then the full platform sweep through your backend. Found accounts rise to the top; a hit means the handle is registered there, not necessarily by the same person.'),
+      controls, h('div', { class: 'scanbar' }, bar), note, list));
   },
 };
