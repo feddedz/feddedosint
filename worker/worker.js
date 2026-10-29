@@ -351,7 +351,7 @@ async function handleCheck(request, env, user) {
 async function handleFetch(request, env, user) {
   const g = gate(user, false);
   if (g) return err(GATE_MSG[g], g === 'auth' ? 401 : 403, request, env);
-  if (!await rateLimit(env, `fetch:${user.login}`, 40, 60)) return err('rate limit reached', 429, request, env);
+  if (!await rateLimit(env, `fetch:${user.login}`, 150, 60)) return err('rate limit reached', 429, request, env);
   const { url } = await request.json().catch(() => ({}));
   let u;
   try { u = new URL(url); } catch { return err('invalid url', 400, request, env); }

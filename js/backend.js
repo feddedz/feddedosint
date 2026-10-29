@@ -127,26 +127,77 @@ export async function aiStream(payload, { onThought, onText, signal } = {}) {
 }
 export const fetchUrl = url => api('/fetch', { method: 'POST', auth: true, body: { url }, timeout: 20000 });
 
-// Deep username scan. Runs the big site list server-side (no CORS limits) in batches.
-// Calls onBatch(sites[], results[]) as each batch returns. Returns when every site is done.
-// Pass an AbortSignal to stop early. `concurrency` batches run at once.
-export async function deepScan(username, sites, { onBatch, signal, batchSize = 40, concurrency = 4 } = {}) {
+// Same existence logic the Worker's /check uses, run on a status code + body (for the /fetch fallback).
+function classify(spec, status, body) {
+  const eCode = spec.e || 200;
+  const has = s => s && body.includes(s);
+  if (status === eCode && (!spec.es || has(spec.es))) return 'found';
+  if ((spec.mc && status === spec.mc) || has(spec.ms)) return 'none';
+  if ((status === 404 || status === 410) && !spec.es) return 'none';
+  if (status === eCode && spec.es) return 'none';
+  return 'unknown';
+}
+const siteURL = (spec, username) => spec.u.replace(/\{u\}/g, encodeURIComponent(username));
+
+// One existence check via the already-deployed /fetch endpoint (client-side classify).
+async function checkViaFetch(spec, username) {
+  const url = siteURL(spec, username);
+  const r = await api('/fetch', { method: 'POST', auth: true, body: { url }, timeout: 15000 });
+  if (r.status === 429) return { state: 'unknown', error: 'rate limited', url };
+  if (!r.ok || !r.data) return { state: 'unknown', error: r.data?.error || 'failed', url };
+  return { state: classify(spec, r.data.status, r.data.body || ''), status: r.data.status, url: r.data.finalUrl || url };
+}
+
+// Deep username scan. Prefers the batched /check endpoint (fast, whole list). If the deployed
+// Worker doesn't have it yet, falls back to per-site /fetch (slower, so capped). Calls
+// onMode(mode[, error]) once the mode is known and onBatch(sites[], results[]) as results arrive.
+// Pass an AbortSignal to stop early.
+export async function deepScan(username, sites, { onMode, onBatch, signal, batchSize = 40, concurrency = 5, fetchCap = 150 } = {}) {
   const batches = [];
   for (let i = 0; i < sites.length; i += batchSize) batches.push(sites.slice(i, i + batchSize));
-  let next = 0;
-  const worker = async () => {
-    while (next < batches.length) {
+
+  // Probe /check with the first batch to learn the mode.
+  let mode = 'check', probe = null;
+  const first = batches[0] || [];
+  if (first.length) {
+    const r = await api('/check', { method: 'POST', auth: true, body: { username, sites: first }, timeout: 30000 });
+    if (r.status === 404) mode = 'fetch';                                   // endpoint not deployed yet
+    else if (r.status === 401 || r.status === 403) { onMode?.('blocked', r.data?.error); return { mode: 'blocked', error: r.data?.error }; }
+    else probe = r.ok && Array.isArray(r.data?.results) ? r.data.results : first.map(() => ({ state: 'unknown' }));
+  }
+  onMode?.(mode);
+  if (signal?.aborted) return { mode };
+
+  if (mode === 'check') {
+    if (probe) onBatch?.(first, probe);
+    let next = 1;
+    const run = async () => {
+      while (next < batches.length) {
+        if (signal?.aborted) return;
+        const batch = batches[next++];
+        const r = await api('/check', { method: 'POST', auth: true, body: { username, sites: batch }, timeout: 30000 });
+        if (signal?.aborted) return;
+        onBatch?.(batch, r.ok && Array.isArray(r.data?.results) ? r.data.results : batch.map(() => ({ state: 'unknown', error: r.data?.error || 'error' })));
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, batches.length - 1)) }, run));
+    return { mode, scanned: sites.length };
+  }
+
+  // Fallback: per-site /fetch, capped to respect the tighter rate limit.
+  const set = sites.slice(0, fetchCap);
+  let idx = 0;
+  const run = async () => {
+    while (idx < set.length) {
       if (signal?.aborted) return;
-      const batch = batches[next++];
-      const r = await api('/check', { method: 'POST', auth: true, body: { username, sites: batch }, timeout: 30000 });
+      const spec = set[idx++];
+      const res = await checkViaFetch(spec, username).catch(() => ({ state: 'unknown', error: 'failed' }));
       if (signal?.aborted) return;
-      const results = r.ok && Array.isArray(r.data?.results)
-        ? r.data.results
-        : batch.map(() => ({ state: 'unknown', error: r.data?.error || 'backend error' }));
-      onBatch?.(batch, results);
+      onBatch?.([spec], [res]);
     }
   };
-  await Promise.all(Array.from({ length: Math.min(concurrency, batches.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(4, set.length) }, run));
+  return { mode, scanned: set.length, partial: sites.length > set.length };
 }
 export const aiAvailable = async () => backendConfigured() && !!(await health())?.ai;
 
