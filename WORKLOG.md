@@ -14,7 +14,16 @@ Format:
 
 ---
 
-### 2026-10-29 23:47 UTC — ogu (OG username finder)
+### 2026-10-29 23:50 UTC — ogu: full-dataset scan + controls
+- **ogu** now checks far more: a scope toggle (popular+games ~85, or everything ~692), an
+  adult opt-in (off by default), and a taken-by-category breakdown on single-handle results.
+- Pattern mode gains the same scope control (broader signal set, bounded candidate count).
+- Tested headless: single handle scans 84 vs 653 platforms on toggle; category card renders;
+  no console errors.
+- files: js/tools/ogu.js
+- PR: not yet shipped
+
+### ### 2026-10-29 23:47 UTC — ogu (OG username finder)
 - New **ogu** tool (identity): finds usernames across popular sites + all 69 gaming platforms.
   Two modes: a handle -> where it's taken vs available; a wildcard pattern (? = one char, * = 1-2)
   -> generates matching candidates and ranks them by availability (handle hunting).
