@@ -44,7 +44,7 @@ Add as **secrets** (encrypted):
 Deploy.
 
 ### 5. Connect the site
-Open `<worker-url>/health` — it should show `{"ok":true,"ai":true,"github":true,...}`. Then on the site → **settings → backend**, paste the Worker URL. Go to **account → continue with GitHub**. The first time you sign in with the `ADMIN_USER` account you become admin; everyone else is pending until you approve them (and grant pro) in the members panel.
+Open `<worker-url>/health` — it should show `{"ok":true,"ai":true,"github":true,...}`. The site is pinned to this Worker in `js/backend.js` (`BACKEND`) — change that constant if the Worker URL ever changes. Then open the site and **continue with GitHub**. The first time you sign in with the `ADMIN_USER` account you become admin; everyone else is pending until you approve them (and grant pro) in the members panel.
 
 ## CLI alternative
 With `wrangler` installed: fill `wrangler.toml`, then

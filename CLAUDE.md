@@ -35,6 +35,9 @@ sessions since containers are ephemeral.
   approval gate, a hidden Gemini key for the AI, and two proxies (`/fetch`, `/check`) so the
   browser can reach sites it otherwise can't (CORS / server-side existence checks).
 - Dark, minimal UI; mouse-following snow background.
+- **Members only:** `js/lock.js` hides the whole app until the visitor is signed in with GitHub
+  *and* approved. Every visitor uses the one shared Worker,
+  `https://feddedosint-api.bptiktok6.workers.dev` (hardcoded as `BACKEND` in `js/backend.js`).
 
 ## 2. Repo layout
 
@@ -45,6 +48,7 @@ js/app.js               tool registry (GROUPS), sidebar, router, command palette
 js/util.js              h(), getJSON/getText, dns() (DoH), RDAP helpers, UI blocks (card/grid/kv/
                         asyncCard/badge/pivot/copyBtn/linkGroups/mdLite), validation (isIP, normDomain…)
 js/store.js             localStorage: settings, session, API keys, recent, graph, case
+js/lock.js              sign-in wall (lockReason/renderLock), checked by app.js route()
 js/backend.js           client for the Worker (auth, admin, aiChat, aiStream, deepScan, fetchUrl)
 js/collect.js           structured collection (domain/ip/asn/url/email) used by engine + chat
 js/sites.js             ~700 platform specs (WhatsMyName dataset) for the username deep scan
@@ -121,7 +125,8 @@ Config — **vars:** `AI_MODEL` (`BESTMODEL` or a pinned id), `ALLOWED_ORIGINS`,
 - **Browser:** headless Chromium via `createRequire('/opt/node-tools/x.js')('playwright')`,
   `chromium.launch({args:['--no-sandbox']})`. Serve with `python3 -m http.server`, seed
   `localStorage` (`feddedosint.settings`, `feddedosint.session`) in `addInitScript`, mock the
-  network with `page.route` (DoH takes `type=A`; backend at the configured `backendUrl`).
+  network with `page.route` (DoH takes `type=A`; backend at `BACKEND` in `js/backend.js`). The app is behind a sign-in wall, so seed an
+  approved `feddedosint.session` and mock `/auth/me` or every tool test just sees the lock screen.
 - A "load every tool, assert no console errors" smoke test is the fastest regression.
 
 ## 7. Release workflow

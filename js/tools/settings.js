@@ -1,27 +1,16 @@
-import { h, card, grid, muted, ext, badge, pivot } from '../util.js';
+import { h, card, grid, muted, ext, badge } from '../util.js';
 import { KEY_DEFS, getKey, setKey, hasKey, settings, setSetting, applyTheme, clearGraph, clearRecent } from '../store.js';
 import * as be from '../backend.js';
 
 function backendCard() {
-  const s = settings();
-  const input = h('input', { class: 'filter', type: 'text', value: s.backendUrl || '', placeholder: 'https://feddedosint-api.you.workers.dev', spellcheck: 'false' });
-  const status = h('span', {}, s.backendUrl ? badge('checking…', 'muted') : badge('not set', 'muted'));
-  const check = async () => {
-    if (!settings().backendUrl) { status.replaceChildren(badge('not set', 'muted')); return; }
-    be.clearHealthCache();
-    const info = await be.health(true);
-    if (!info) { status.replaceChildren(badge('unreachable', 'bad')); return; }
-    status.replaceChildren(badge('connected', 'ok'), ' ', h('span', { class: 'muted small' },
-      `AI ${info.ai ? 'ready (' + info.model + ')' : 'off'}${info.inviteRequired ? ' · invite-only' : ''}`));
-  };
-  const save = h('button', { class: 'mini', type: 'button' }, 'save');
-  save.onclick = async () => { setSetting('backendUrl', input.value.trim().replace(/\/+$/, '')); save.textContent = 'saved'; setTimeout(() => (save.textContent = 'save'), 900); await check(); };
-  check();
+  const status = h('span', {}, badge('checking…', 'muted'));
+  be.health(true).then(info => {
+    if (!info) return status.replaceChildren(badge('unreachable', 'bad'));
+    status.replaceChildren(badge('connected', 'ok'), ' ', h('span', { class: 'muted small' }, `AI ${info.ai ? 'ready (' + info.model + ')' : 'off'}`));
+  });
   return card('backend', { wide: true, actions: status },
-    muted('Optional Cloudflare Worker that hides your Gemini key and powers GitHub sign-in and the AI. Set up with the guide, then paste its URL here.'),
-    h('div', { class: 'row' }, input, save),
-    h('p', { class: 'muted small' }, 'guide: ', ext('https://github.com/feddedz/feddedosint/blob/main/worker/README.md', 'worker/README.md'),
-      ' · once connected, ', pivot('account', '', 'sign in →')));
+    muted('Everyone uses the shared feddedosint backend: GitHub sign-in, approvals, the AI and the proxies.'),
+    h('p', { class: 'muted small' }, be.BACKEND));
 }
 
 function keyRow(def) {
@@ -86,7 +75,7 @@ export default {
           clearBtn('clear everything', () => { try { localStorage.clear(); } catch {} applyTheme(); }))),
 
       card('about', { wide: true },
-        muted('feddedosint is a fully client-side OSINT toolkit — no backend, no tracking. Queries go straight from your browser to the public services shown in each result.'),
+        muted('feddedosint is a members-only OSINT toolkit. Most queries go straight from your browser to the public services shown in each result; sign-in, the AI and the proxies run on the shared backend.'),
         h('p', { class: 'muted small' }, 'For lawful, ethical research only. Respect privacy and each service’s terms.')),
     );
   },

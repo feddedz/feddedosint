@@ -978,3 +978,14 @@ button.primary:disabled { opacity: .5; cursor: default; }
 .navitem.busy { position: relative; }
 .navitem.busy::after { content: ''; position: absolute; right: 8px; top: 50%; width: 7px; height: 7px; margin-top: -3px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 1.1s ease-in-out infinite; }
 body.rail .navitem.busy::after { right: 6px; top: 8px; margin-top: 0; }
+
+/* ---------- sign-in wall ---------- */
+body.locked .app, body.locked .palette { display: none; }
+.lock { position: relative; z-index: 1; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+.lock[hidden] { display: none; }
+.lockbox { width: 100%; max-width: 420px; padding: 26px 24px 22px; }
+.lockbox h2 { margin: 14px 0 6px; font-size: 18px; }
+.lockbox p { margin: 0 0 10px; }
+.lockbrand { font-weight: 700; font-size: 15px; letter-spacing: .02em; }
+.lockbrand span { color: var(--muted); }
+.lockactions { margin: 16px 0 12px; gap: 8px; align-items: center; }

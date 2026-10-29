@@ -46,7 +46,7 @@ Tools live in a collapsible sidebar: click a group name to fold it, fold them al
 
 ## Backend — AI, accounts and access
 
-The 28 tools run entirely in your browser and work for everyone with no setup. The **AI engine** and **chat** are powered by a small Cloudflare Worker (`worker/`), which:
+The site is **members-only**: you sign in with GitHub and an admin approves your account before any tool is shown. Every visitor uses the one shared Worker at `https://feddedosint-api.bptiktok6.workers.dev`. Most tools then query public services straight from your browser. The **AI engine** and **chat** are powered by a small Cloudflare Worker (`worker/`), which:
 
 - holds the Gemini key as a server-side secret, so every visitor's AI request uses it **without the key ever reaching a browser**;
 - signs users in with **GitHub** (no passwords; GitHub handles 2FA);
