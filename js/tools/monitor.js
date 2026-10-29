@@ -1,5 +1,5 @@
 import { h, card, grid, muted, badge, ext, pivot, dns, getJSON, isIP, normDomain } from '../util.js';
-import { watches, addWatch, removeWatch, isWatched, saveSnapshot } from '../store.js';
+import { watches, addWatch, removeWatch, isWatched, saveSnapshot, watchHistory } from '../store.js';
 
 // Change monitoring for infrastructure you own or are authorized to watch. Takes a snapshot of a
 // domain or IP — certificate-transparency subdomains, DNS records, open ports and known CVEs —
@@ -114,6 +114,35 @@ function snapshotSummary(snap, tool) {
     h('tr', {}, h('td', { class: 'muted small' }, k), h('td', {}, String(v))))));
 }
 
+function historyCard(id) {
+  const hist = watchHistory(id);
+  if (!hist.length) return null;
+  return card('change history', { wide: true, collapsed: hist.length > 3 },
+    muted(`${hist.length} recorded change event(s) for this target.`),
+    h('div', { class: 'steplog' }, hist.map(ev => h('div', { class: 'step' },
+      badge(new Date(ev.at).toISOString().slice(0, 16).replace('T', ' '), 'muted'),
+      h('span', {}, `${ev.added.length} new · ${ev.removed.length} gone`,
+        ev.added.length ? h('span', { class: 'muted small' }, ' — ' + ev.added.slice(0, 4).map(x => x.replace(/^[^:]+: /, '')).join(', ') + (ev.added.length > 4 ? '…' : '')) : null)))));
+}
+
+async function recheckAll(btn, statusEl) {
+  const list = watches();
+  btn.disabled = true;
+  let changed = 0, checked = 0;
+  for (const w of list) {
+    statusEl.textContent = `checking ${w.value} (${checked + 1}/${list.length})…`;
+    try {
+      const next = await snapshot(w.tool, w.value);
+      const d = w.snapshot ? diff(w.snapshot, next) : null;
+      saveSnapshot(w.id, next, d);
+      if (d && (d.added.length || d.removed.length)) changed++;
+    } catch {}
+    checked++;
+  }
+  statusEl.textContent = `done — ${checked} checked, ${changed} changed.`;
+  setTimeout(rerender, 900);
+}
+
 function watchlistCard() {
   const list = watches();
   if (!list.length) {
@@ -129,8 +158,11 @@ function watchlistCard() {
       h('td', { class: 'muted small' }, w.checked ? 'last checked ' + new Date(w.checked).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : 'never checked'),
       h('td', {}, h('div', { class: 'row', style: 'gap:6px;justify-content:flex-end' }, open, rm)));
   });
-  return card(`watchlist (${list.length})`, { wide: true },
-    muted('Targets you are monitoring. Open each to take a fresh snapshot and see what changed.'),
+  const status = h('span', { class: 'muted small' }, '');
+  const recheck = h('button', { class: 'mini', type: 'button' }, 're-check all');
+  recheck.onclick = () => recheckAll(recheck, status);
+  return card(`watchlist (${list.length})`, { wide: true, actions: h('div', { class: 'row', style: 'gap:8px' }, status, recheck) },
+    muted('Targets you are monitoring. Open each to take a fresh snapshot and see what changed; or re-check them all at once.'),
     h('table', { class: 'records' }, h('tbody', {}, rows)));
 }
 
@@ -152,7 +184,8 @@ export default {
     const prior = watches().find(w => w.id === id)?.snapshot || null;
 
     const next = await snapshot(tool, value);
-    if (prior) saveSnapshot(id, next);
+    const earlyDiff = prior ? diff(prior, next) : null;
+    if (prior) saveSnapshot(id, next, earlyDiff);
 
     // Watch / unwatch control.
     const watched = isWatched(tool, value);
@@ -174,7 +207,7 @@ export default {
           ? 'First snapshot saved as the baseline. Re-check later and anything new — a fresh subdomain, a newly open port, a new CVE — shows up here as an alert.'
           : 'This is a first look. Add it to your watchlist to save a baseline, then future checks will diff against it.'));
     } else {
-      const { added, removed } = diff(prior, next);
+      const { added, removed } = earlyDiff;
       if (!added.length && !removed.length) {
         changeCard = card('changes', { wide: true, actions: badge('no change', 'ok') },
           muted('Nothing changed since the last snapshot.'));
@@ -191,6 +224,6 @@ export default {
         pivot(tool, value, `${tool} detail`),
         pivot('engine', value, 'autonomous engine')));
 
-    return grid(head, changeCard, pivots, watchlistCard());
+    return grid(head, changeCard, historyCard(id), pivots, watchlistCard());
   },
 };

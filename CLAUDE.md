@@ -51,6 +51,7 @@ js/store.js             localStorage: settings, session, API keys, recent, graph
 js/lock.js              sign-in wall (lockReason/renderLock), checked by app.js route()
 js/backend.js           client for the Worker (auth, admin, aiChat, aiStream, deepScan, fetchUrl)
 js/collect.js           structured collection (domain/ip/asn/url/email) used by engine + chat
+js/risk.js              shared risk scoring (finding/posture/rank) used by playbook
 js/sites.js             ~700 platform specs (WhatsMyName dataset) for the username deep scan
 js/icons.js snow.js leaflet.js md5.js ai.js gate.js   support modules
 js/tools/*.js           one module per tool (see §4)
@@ -92,7 +93,8 @@ export default {
 - **threat:** cve, headers (email header analysis).
 - **research:** records, dorks (search-operator builder).
 - **tools:** extract (IOCs from text), utils (encode/decode/hash).
-- **intelligence:** engine (autonomous, from `collect.js`), chat (streaming Gemini).
+- **intelligence:** engine (autonomous, from `collect.js`), playbook (automated audit workflow +
+  risk-scored report, `js/risk.js`), chat (streaming Gemini).
 - **workspace:** graph, case, account, settings.
 
 Sources are public APIs that allow browser requests (GitHub, GitLab, Reddit, crt.sh, rdap.org,

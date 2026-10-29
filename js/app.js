@@ -18,6 +18,7 @@ import monitor from './tools/monitor.js';
 import wayback from './tools/wayback.js';
 import takeover from './tools/takeover.js';
 import sweep from './tools/sweep.js';
+import playbook from './tools/playbook.js';
 import ip from './tools/ip.js';
 import asn from './tools/asn.js';
 import url from './tools/url.js';
@@ -44,7 +45,7 @@ import settingsTool from './tools/settings.js';
 // Sidebar groups. Every labelled group can be collapsed; collapsed groups still show the active tool.
 const GROUPS = [
   { id: 'start', label: '', tools: [overview] },
-  { id: 'intelligence', label: 'intelligence', tools: [engine, chat] },
+  { id: 'intelligence', label: 'intelligence', tools: [engine, playbook, chat] },
   { id: 'identity', label: 'identity', tools: [username, email, phone, breach] },
   { id: 'network', label: 'network', tools: [recon, monitor, sweep, domain, ip, asn, url, mac, cidr, takeover, wayback] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
@@ -74,7 +75,7 @@ const BLURBS = {
   dorks: 'operator query builder', extract: 'pull iocs from any text', utils: 'encode, decode, hash',
   graph: 'your pivots, visualised', case: 'notes, timeline, reports',
   account: 'sign in with github', settings: 'backend, keys, theme',
-  engine: 'investigate automatically', chat: 'ask, plan, interpret',
+  engine: 'investigate automatically', playbook: 'one-click audit workflow', chat: 'ask, plan, interpret',
 };
 const TOOLS = GROUPS.flatMap(g => g.tools);
 const byId = Object.fromEntries(TOOLS.map(t => [t.id, t]));
