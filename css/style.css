@@ -417,6 +417,13 @@ button.mini.ghost { background: none; border-color: transparent; }
 .liverow .detail { font-size: 12px; overflow-wrap: anywhere; margin-top: 2px; }
 .avatar:empty { display: none; }
 .avatar img { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; display: block; background: #111; }
+.liverow .badge { margin: 1px 0 0 8px; font-size: 10px; vertical-align: 1px; }
+
+/* deep scan */
+.scanopts { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 8px 0 10px; }
+.scanopts label { display: inline-flex; align-items: center; gap: 6px; }
+.scanbar { height: 4px; border-radius: 3px; background: var(--inset-2); overflow: hidden; margin-bottom: 12px; }
+.scanbar .barfill { height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }
 
 .dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
 .dot.pending { border: 1.5px solid var(--dim); border-top-color: var(--accent); animation: spin .7s linear infinite; width: 10px; height: 10px; margin-top: 5px; }

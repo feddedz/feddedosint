@@ -126,6 +126,28 @@ export async function aiStream(payload, { onThought, onText, signal } = {}) {
   return answer;
 }
 export const fetchUrl = url => api('/fetch', { method: 'POST', auth: true, body: { url }, timeout: 20000 });
+
+// Deep username scan. Runs the big site list server-side (no CORS limits) in batches.
+// Calls onBatch(sites[], results[]) as each batch returns. Returns when every site is done.
+// Pass an AbortSignal to stop early. `concurrency` batches run at once.
+export async function deepScan(username, sites, { onBatch, signal, batchSize = 40, concurrency = 4 } = {}) {
+  const batches = [];
+  for (let i = 0; i < sites.length; i += batchSize) batches.push(sites.slice(i, i + batchSize));
+  let next = 0;
+  const worker = async () => {
+    while (next < batches.length) {
+      if (signal?.aborted) return;
+      const batch = batches[next++];
+      const r = await api('/check', { method: 'POST', auth: true, body: { username, sites: batch }, timeout: 30000 });
+      if (signal?.aborted) return;
+      const results = r.ok && Array.isArray(r.data?.results)
+        ? r.data.results
+        : batch.map(() => ({ state: 'unknown', error: r.data?.error || 'backend error' }));
+      onBatch?.(batch, results);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, batches.length) }, worker));
+}
 export const aiAvailable = async () => backendConfigured() && !!(await health())?.ai;
 
 export { setSetting };

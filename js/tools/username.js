@@ -1,4 +1,6 @@
-import { h, getJSON, card, ext, linkGroups, copyBtn, grid, fmtDate, fmtNum, muted } from '../util.js';
+import { h, getJSON, card, ext, linkGroups, copyBtn, grid, fmtDate, fmtNum, muted, badge } from '../util.js';
+import { SITES } from '../sites.js';
+import * as be from '../backend.js';
 
 // Live checks against public APIs that allow browser (CORS) requests.
 // Each returns { state: 'found' | 'none' | 'unknown', info?: [], avatar? }.
@@ -134,51 +136,6 @@ const live = [
   },
 ];
 
-// Sites without a usable public API — opened for manual checking.
-const SITES = {
-  social: [
-    ['X / Twitter', 'https://x.com/{u}'], ['Instagram', 'https://www.instagram.com/{u}/'], ['TikTok', 'https://www.tiktok.com/@{u}'],
-    ['Facebook', 'https://www.facebook.com/{u}'], ['Threads', 'https://www.threads.net/@{u}'], ['Snapchat', 'https://www.snapchat.com/add/{u}'],
-    ['YouTube', 'https://www.youtube.com/@{u}'], ['Twitch', 'https://www.twitch.tv/{u}'], ['Kick', 'https://kick.com/{u}'],
-    ['Pinterest', 'https://www.pinterest.com/{u}/'], ['Tumblr', 'https://{u}.tumblr.com'], ['LinkedIn', 'https://www.linkedin.com/in/{u}'],
-    ['Telegram', 'https://t.me/{u}'], ['VK', 'https://vk.com/{u}'], ['Medium', 'https://medium.com/@{u}'],
-    ['Substack', 'https://{u}.substack.com'], ['Quora', 'https://www.quora.com/profile/{u}'], ['Truth Social', 'https://truthsocial.com/@{u}'],
-    ['Linktree', 'https://linktr.ee/{u}'], ['About.me', 'https://about.me/{u}'], ['Gravatar', 'https://gravatar.com/{u}'],
-  ],
-  code: [
-    ['Bitbucket', 'https://bitbucket.org/{u}/'], ['Codeberg', 'https://codeberg.org/{u}'], ['SourceForge', 'https://sourceforge.net/u/{u}/profile'],
-    ['PyPI', 'https://pypi.org/user/{u}/'], ['Docker Hub', 'https://hub.docker.com/u/{u}'], ['Hugging Face', 'https://huggingface.co/{u}'],
-    ['Replit', 'https://replit.com/@{u}'], ['CodePen', 'https://codepen.io/{u}'], ['Kaggle', 'https://www.kaggle.com/{u}'],
-    ['LeetCode', 'https://leetcode.com/u/{u}/'], ['Codewars', 'https://www.codewars.com/users/{u}'], ['Hashnode', 'https://hashnode.com/@{u}'],
-    ['HackerOne', 'https://hackerone.com/{u}'], ['Bugcrowd', 'https://bugcrowd.com/{u}'], ['TryHackMe', 'https://tryhackme.com/p/{u}'],
-    ['Product Hunt', 'https://www.producthunt.com/@{u}'], ['Pastebin', 'https://pastebin.com/u/{u}'], ['Trello', 'https://trello.com/u/{u}'],
-  ],
-  gaming: [
-    ['Steam', 'https://steamcommunity.com/id/{u}'], ['Roblox', 'https://www.roblox.com/search/users?keyword={u}'],
-    ['Minecraft (NameMC)', 'https://namemc.com/profile/{u}'], ['Xbox', 'https://xboxgamertag.com/search/{u}'],
-    ['PlayStation', 'https://psnprofiles.com/{u}'], ['osu!', 'https://osu.ppy.sh/users/{u}'], ['Speedrun', 'https://www.speedrun.com/users/{u}'],
-    ['itch.io', 'https://{u}.itch.io'], ['Duolingo', 'https://www.duolingo.com/profile/{u}'],
-  ],
-  'media & creative': [
-    ['SoundCloud', 'https://soundcloud.com/{u}'], ['Bandcamp', 'https://{u}.bandcamp.com'], ['Last.fm', 'https://www.last.fm/user/{u}'],
-    ['Behance', 'https://www.behance.net/{u}'], ['Dribbble', 'https://dribbble.com/{u}'], ['DeviantArt', 'https://www.deviantart.com/{u}'],
-    ['ArtStation', 'https://www.artstation.com/{u}'], ['Flickr', 'https://www.flickr.com/people/{u}'], ['Vimeo', 'https://vimeo.com/{u}'],
-    ['500px', 'https://500px.com/p/{u}'], ['Unsplash', 'https://unsplash.com/@{u}'], ['Imgur', 'https://imgur.com/user/{u}'],
-    ['Letterboxd', 'https://letterboxd.com/{u}/'], ['Wattpad', 'https://www.wattpad.com/user/{u}'], ['Disqus', 'https://disqus.com/by/{u}/'],
-    ['Internet Archive', 'https://archive.org/details/@{u}'],
-  ],
-  'money & commerce': [
-    ['Patreon', 'https://www.patreon.com/{u}'], ['Ko-fi', 'https://ko-fi.com/{u}'], ['Buy Me a Coffee', 'https://buymeacoffee.com/{u}'],
-    ['Cash App', 'https://cash.app/${u}'], ['Venmo', 'https://account.venmo.com/u/{u}'], ['Etsy', 'https://www.etsy.com/people/{u}'],
-    ['eBay', 'https://www.ebay.com/usr/{u}'],
-  ],
-  'search': [
-    ['Google', 'https://www.google.com/search?q=%22{u}%22'], ['Bing', 'https://www.bing.com/search?q=%22{u}%22'],
-    ['DuckDuckGo', 'https://duckduckgo.com/?q=%22{u}%22'], ['Yandex', 'https://yandex.com/search/?text=%22{u}%22'],
-    ['WhatsMyName', 'https://whatsmyname.app/?q={u}'], ['GitHub code', 'https://github.com/search?q=%22{u}%22&type=code'],
-  ],
-};
-
 function liveRow(site, u) {
   const status = h('span', { class: 'dot pending', title: 'checking' });
   const detail = h('div', { class: 'detail muted' }, 'checking…');
@@ -204,18 +161,112 @@ function liveRow(site, u) {
   return { row, done };
 }
 
+// ---------- deep scan across the full WhatsMyName site list ----------
+
+function scanRow(spec, u, state, status) {
+  const dot = h('span', { class: `dot ${state}`, title: state });
+  const url = spec.u.replace(/\{u\}/g, encodeURIComponent(u));
+  const detail = state === 'found' ? 'profile exists'
+    : state === 'unknown' ? `could not verify${status ? ` (HTTP ${status})` : ''} — open to check`
+    : 'not found';
+  return h('div', { class: `liverow ${state}` }, dot, h('div', { class: 'avatar' }),
+    h('div', { class: 'main' }, ext(url, spec.n), badge(spec.c, 'muted'), h('div', { class: 'detail muted' }, detail)));
+}
+
+function deepScanCard(u) {
+  const enc = encodeURIComponent(u);
+  const adult = h('input', { type: 'checkbox' });
+  const filter = h('select', { class: 'mini' },
+    h('option', { value: 'found' }, 'found only'),
+    h('option', { value: 'open' }, 'found + unverified'),
+    h('option', { value: 'all' }, 'everything'));
+  const startBtn = h('button', { class: 'mini', type: 'button' }, `deep scan ${SITES.length} sites`);
+  const stopBtn = h('button', { class: 'mini', type: 'button', hidden: true }, 'stop');
+  const bar = h('div', { class: 'barfill' });
+  const progress = h('div', { class: 'scanbar' }, bar);
+  const summary = h('span', { class: 'muted small' }, `${SITES.length} sites ready`);
+  const list = h('div', { class: 'livelist' });
+  const found = [];               // collected hits, in order
+  const copyFound = copyBtn(() => found.map(f => `${f.n}: ${f.url}`).join('\n') || 'no hits yet', 'copy found');
+
+  const relabel = () => {
+    const f = filter.value;
+    list.querySelectorAll('.liverow').forEach(r => {
+      const st = r.dataset.state;
+      r.hidden = !(f === 'all' || (f === 'open' && st !== 'none') || (f === 'found' && st === 'found'));
+    });
+  };
+  filter.addEventListener('change', relabel);
+
+  let controller = null;
+  const setRunning = on => {
+    startBtn.hidden = on; stopBtn.hidden = !on;
+    adult.disabled = on;
+  };
+
+  async function run() {
+    const set = SITES.filter(s => adult.checked || s.c !== 'adult');
+    list.replaceChildren(); found.length = 0;
+    controller = new AbortController();
+    setRunning(true);
+    let checked = 0, nFound = 0;
+    const tick = () => {
+      bar.style.width = `${Math.round((checked / set.length) * 100)}%`;
+      summary.textContent = `${checked}/${set.length} checked · ${nFound} found`;
+    };
+    tick();
+    try {
+      await be.deepScan(u, set, {
+        signal: controller.signal,
+        onBatch(batch, results) {
+          batch.forEach((spec, i) => {
+            const res = results[i] || { state: 'unknown' };
+            checked++;
+            if (res.state === 'found') {
+              nFound++;
+              found.push({ n: spec.n, url: res.url || spec.u.replace(/\{u\}/g, enc), cat: spec.c });
+            }
+            const row = scanRow(spec, u, res.state, res.status);
+            row.dataset.state = res.state;
+            // keep found rows at the top, everything else after
+            if (res.state === 'found') list.prepend(row); else list.append(row);
+          });
+          tick(); relabel();
+        },
+      });
+      summary.textContent = `done · ${nFound} found across ${set.length} sites`;
+    } catch (e) {
+      summary.textContent = 'scan error — ' + (e?.message || 'failed');
+    } finally {
+      bar.style.width = '100%';
+      setRunning(false);
+    }
+  }
+
+  startBtn.addEventListener('click', run);
+  stopBtn.addEventListener('click', () => { controller?.abort(); summary.textContent += ' · stopped'; setRunning(false); });
+
+  const opts = h('div', { class: 'scanopts' },
+    h('label', { class: 'muted small' }, adult, ' include adult sites'),
+    h('label', { class: 'muted small' }, 'show ', filter),
+    copyFound);
+
+  return card('deep scan — every site', { wide: true, actions: h('div', { class: 'actions' }, summary, startBtn, stopBtn) },
+    muted(`Runs ${SITES.length} existence checks server-side (real status codes + page markers, no browser blocking). Results stream in as they finish; a hit means the handle is registered there, not necessarily by the same person.`),
+    opts, progress, list);
+}
+
 export default {
   id: 'username',
   label: 'username',
   placeholder: 'username or handle',
-  intro: 'Checks a handle live against public APIs, then fans out to ~80 platforms for manual verification.',
+  intro: 'Checks a handle live against public APIs, then deep-scans ~700 platforms server-side for every account using that name.',
   examples: ['torvalds', 'gargron'],
 
   run(raw) {
     const u = raw.trim().replace(/^@/, '');
     if (!u) throw new Error('enter a username');
     if (/\s/.test(u)) throw new Error('usernames cannot contain spaces — try the search tab for full names');
-    const enc = encodeURIComponent(u);
 
     const summary = h('span', { class: 'muted' }, 'checking…');
     const rows = live.map(s => liveRow(s, u));
@@ -229,15 +280,27 @@ export default {
       }
     });
 
-    const allLinks = () => Object.values(SITES).flat().map(([n, t]) => `${n}: ${t.replaceAll('{u}', enc)}`).join('\n');
+    const cards = [
+      card('live checks — rich profiles', { wide: true, actions: summary }, h('div', { class: 'livelist' }, rows.map(r => r.row))),
+    ];
 
-    return grid(
-      card('live checks', { wide: true, actions: summary }, h('div', { class: 'livelist' }, rows.map(r => r.row))),
-      card('manual checks', { wide: true, actions: copyBtn(allLinks, 'copy all') },
-        muted('These sites block automated lookups. A page that loads a profile means the handle is taken there — not necessarily by the same person.'),
-        linkGroups(Object.entries(SITES).map(([group, items]) => ({
-          group, items: items.map(([n, t]) => [n, t.replaceAll('{u}', enc)]),
-        })))),
-    );
+    // Deep scan needs the backend (server-side fetch) and an approved account.
+    if (be.backendConfigured() && be.isApproved()) {
+      cards.push(deepScanCard(u));
+    } else {
+      const why = !be.backendConfigured() ? 'the backend is not configured'
+        : !be.isLoggedIn() ? 'sign in with GitHub to run it'
+        : 'your account needs admin approval to run it';
+      const enc = encodeURIComponent(u);
+      const pub = SITES.filter(s => s.c !== 'adult');
+      const byCat = {};
+      for (const s of pub) (byCat[s.c] ||= []).push([s.n, s.u.replace(/\{u\}/g, enc)]);
+      cards.push(card('manual checks', { wide: true, collapsed: true,
+        actions: copyBtn(() => pub.map(s => `${s.n}: ${s.u.replace(/\{u\}/g, enc)}`).join('\n'), 'copy all') },
+        muted(`Deep scan is unavailable (${why}). Meanwhile, open these ${pub.length} sites manually — a profile that loads means the handle is taken there.`),
+        linkGroups(Object.entries(byCat).map(([group, items]) => ({ group, items })))));
+    }
+
+    return grid(...cards);
   },
 };
