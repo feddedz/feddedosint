@@ -220,6 +220,64 @@ async function handleAI(request, env, user) {
   return json({ error: models.length > 1 ? `all models are busy right now — ${lastErr}` : lastErr }, 200, request, env);
 }
 
+// The model list for BESTMODEL fallback, or the single configured model.
+function modelList(env) {
+  const DEFAULT_CHAIN = 'gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-2.5-flash,gemini-flash-latest,gemini-2.5-flash-lite';
+  const configured = (env.AI_MODEL || 'gemini-2.5-flash').trim();
+  return configured.toUpperCase() === 'BESTMODEL'
+    ? (env.BESTMODEL_CHAIN || DEFAULT_CHAIN).split(',').map(s => s.trim()).filter(Boolean)
+    : [configured];
+}
+
+// ---------- AI streaming (chat): live tokens + visible thinking ----------
+
+async function handleAIStream(request, env, user) {
+  const g = gate(user, true);
+  if (g) return err(GATE_MSG[g], g === 'auth' ? 401 : 403, request, env);
+  if (!await rateLimit(env, `ai:${user.login}`, 60, 60)) return err('rate limit reached — wait a minute', 429, request, env);
+  if (!env.GEMINI_KEY) return err('the AI backend is not configured', 503, request, env);
+
+  const body = await request.json().catch(() => ({}));
+  const generationConfig = {
+    temperature: body.temperature ?? 0.5,
+    maxOutputTokens: Math.min(body.maxOutputTokens || 2048, 8192),
+    // Stream the model's reasoning as well as its answer.
+    thinkingConfig: { includeThoughts: true, ...(Number.isFinite(Number(env.AI_THINKING)) ? { thinkingBudget: Number(env.AI_THINKING) } : {}) },
+  };
+  const payload = {
+    contents: Array.isArray(body.contents) ? body.contents : [{ role: 'user', parts: [{ text: String(body.prompt || '') }] }],
+    generationConfig,
+    ...(body.system ? { systemInstruction: { parts: [{ text: String(body.system) }] } } : {}),
+  };
+
+  const models = modelList(env);
+  let lastErr = 'no model responded';
+  for (const model of models) {
+    let upstream;
+    try {
+      upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY }, body: JSON.stringify(payload),
+      });
+    } catch {
+      lastErr = 'could not reach the AI service';
+      continue;
+    }
+    if (upstream.ok && upstream.body) {
+      // Pipe the SSE straight through to the browser.
+      return new Response(upstream.body, {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Model': model, ...corsHeaders(request, env) },
+      });
+    }
+    const data = await upstream.json().catch(() => ({}));
+    lastErr = data?.error?.message || `AI error ${upstream.status}`;
+    const retriable = [429, 500, 503, 404].includes(upstream.status) || /overload|high demand|unavailable|exhausted|try again|quota/i.test(lastErr);
+    if (models.length > 1 && retriable) continue;
+    return json({ error: lastErr }, 200, request, env);
+  }
+  return json({ error: `all models are busy right now — ${lastErr}` }, 200, request, env);
+}
+
 // ---------- SSRF-guarded fetch (approved users) ----------
 
 const BLOCKED_HOST = /^(localhost|.*\.local|.*\.internal|metadata.*)$/i;
@@ -259,6 +317,7 @@ const ROUTES = {
   'GET /admin/users': { auth: true, fn: adminUsers },
   'POST /admin/user': { auth: true, fn: adminSetUser },
   'POST /ai/chat': { open: true, fn: handleAI },
+  'POST /ai/stream': { open: true, fn: handleAIStream },
   'POST /fetch': { open: true, fn: handleFetch },
 };
 
