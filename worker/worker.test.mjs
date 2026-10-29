@@ -36,6 +36,14 @@ globalThis.fetch = async (url, opts) => {
     if (OVERLOADED.has(m)) return new Response(JSON.stringify({ error: { message: 'high demand' } }), { status: 503 });
     return new Response('data: {"candidates":[{"content":{"parts":[{"text":"reasoning here","thought":true}]}}]}\n\ndata: {"candidates":[{"content":{"parts":[{"text":"Hi there"}]}}]}\n\n', { status: 200, headers: { 'content-type': 'text/event-stream' } });
   }
+  if (url.includes('scan.test/')) {
+    // Fake sites for the deep-scan (/check) tests.
+    if (url.includes('/found/')) return new Response('<html>PROOF profile exists</html>', { status: 200 });
+    if (url.includes('/proofmiss/')) return new Response('<html>some soft landing page</html>', { status: 200 });
+    if (url.includes('/gone/')) return new Response('nope', { status: 404 });
+    if (url.includes('/codeonly/')) return new Response('whatever', { status: 200 });
+    return new Response('x', { status: 500 });
+  }
   if (url.includes('generativelanguage.googleapis.com')) {
     const m = url.match(/models\/([^:]+):/)?.[1] || '';
     if (OVERLOADED.has(m)) return new Response(JSON.stringify({ error: { message: 'This model is currently experiencing high demand.' } }), { status: 503 });
@@ -159,6 +167,31 @@ async function loginAs(env, login) {
   const r = await worker.fetch(req('POST', '/ai/stream', { prompt: 'hi' }, adminTok), env);
   ok(r.status === 200 && r.headers.get('x-model') === 'gemini-3.7-flash', 'stream falls back past an overloaded model (' + r.headers.get('x-model') + ')');
   OVERLOADED = new Set();
+}
+
+// --- deep scan (/check) ---
+{
+  const env = baseEnv();
+  const adminTok = await loginAs(env, 'feddedz');
+  const sites = [
+    { n: 'Found', u: 'https://scan.test/found/{u}', es: 'PROOF' },
+    { n: 'ProofMiss', u: 'https://scan.test/proofmiss/{u}', es: 'PROOF' },   // 200 but no proof -> none
+    { n: 'Gone', u: 'https://scan.test/gone/{u}', mc: 404 },
+    { n: 'CodeOnly', u: 'https://scan.test/codeonly/{u}' },                   // 200, no proof string -> found
+    { n: 'Blocked', u: 'http://localhost/{u}' },                             // SSRF guard -> unknown
+  ];
+  const r = await call(env, 'POST', '/check', { username: 'bob', sites }, adminTok);
+  ok(r.status === 200 && Array.isArray(r.data.results), 'check returns results array');
+  const st = r.data.results.map(x => x.state);
+  ok(st[0] === 'found', 'proof string present -> found');
+  ok(st[1] === 'none', 'success code without proof string -> none');
+  ok(st[2] === 'none', 'missing code -> none');
+  ok(st[3] === 'found', 'bare success code -> found');
+  ok(st[4] === 'unknown' && r.data.results[4].error === 'blocked', 'SSRF-blocked host -> unknown');
+
+  const aliceTok = await loginAs(env, 'alice'); // pending
+  ok((await call(env, 'POST', '/check', { username: 'bob', sites }, aliceTok)).status === 403, 'check gated for pending user');
+  ok((await call(env, 'POST', '/check', {}, adminTok)).status === 400, 'check needs username + sites');
 }
 
 // --- CORS ---

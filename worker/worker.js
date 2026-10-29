@@ -283,6 +283,71 @@ async function handleAIStream(request, env, user) {
 const BLOCKED_HOST = /^(localhost|.*\.local|.*\.internal|metadata.*)$/i;
 const BLOCKED_IP = /^(0\.|10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|::1|fe80|fc|fd)/i;
 
+const safeHost = h => h && !BLOCKED_HOST.test(h) && !BLOCKED_IP.test(h);
+
+// ---------- deep username scan (approved users) ----------
+//
+// The client sends a batch of site specs (from the WhatsMyName dataset) plus a username.
+// We run each existence check server-side — no browser CORS limits, real status codes and
+// bodies — and return found / none / unknown per site. The client paginates batches so a
+// single request never exceeds the platform's subrequest budget.
+
+const CHECK_BATCH = 40;
+
+function classifyCheck(spec, status, body) {
+  const eCode = spec.e || 200;
+  const es = spec.es, ms = spec.ms, mc = spec.mc;
+  const has = s => s && body.includes(s);
+  // Existence first: the expected code (plus the proof string, when the site provides one).
+  if (status === eCode && (!es || has(es))) return 'found';
+  // Explicit absence signals.
+  if ((mc && status === mc) || has(ms)) return 'none';
+  // A hard 404/410 with no contrary signal means the handle is free.
+  if ((status === 404 || status === 410) && !es) return 'none';
+  // If the site defines a proof string and we got the success code without it, it's taken by
+  // something else / a soft page — treat as not found rather than a false positive.
+  if (status === eCode && es) return 'none';
+  return 'unknown';
+}
+
+async function checkOne(spec, username) {
+  const target = String(spec.u || '').replace(/\{u\}/g, encodeURIComponent(username));
+  let u;
+  try { u = new URL(target); } catch { return { state: 'unknown', error: 'bad url' }; }
+  if (u.protocol !== 'https:' || !safeHost(u.hostname)) return { state: 'unknown', error: 'blocked' };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 9000);
+  try {
+    const res = await fetch(u.href, {
+      method: spec.rm || 'GET',
+      redirect: 'manual',
+      signal: ctrl.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; feddedosint/1.0)', Accept: 'text/html,application/json,*/*', ...(spec.h || {}) },
+      ...(spec.pb ? { body: String(spec.pb).replace(/\{u\}/g, username) } : {}),
+    });
+    let body = '';
+    if (spec.es || spec.ms) {
+      const buf = new Uint8Array(await res.arrayBuffer());
+      body = new TextDecoder('utf-8', { fatal: false }).decode(buf.subarray(0, 96 * 1024));
+    }
+    return { state: classifyCheck(spec, res.status, body), status: res.status, url: u.href };
+  } catch (e) {
+    return { state: 'unknown', error: e.name === 'AbortError' ? 'timeout' : 'failed', url: u.href };
+  } finally { clearTimeout(timer); }
+}
+
+async function handleCheck(request, env, user) {
+  const g = gate(user, false);
+  if (g) return err(GATE_MSG[g], g === 'auth' ? 401 : 403, request, env);
+  if (!await rateLimit(env, `check:${user.login}`, 40, 60)) return err('rate limit reached — slow down', 429, request, env);
+  const body = await request.json().catch(() => ({}));
+  const username = String(body.username || '').trim();
+  const sites = Array.isArray(body.sites) ? body.sites.slice(0, CHECK_BATCH) : [];
+  if (!username || !sites.length) return err('username and sites[] required', 400, request, env);
+  const results = await Promise.all(sites.map(s => checkOne(s, username).catch(() => ({ state: 'unknown', error: 'failed' }))));
+  return json({ results }, 200, request, env);
+}
+
 async function handleFetch(request, env, user) {
   const g = gate(user, false);
   if (g) return err(GATE_MSG[g], g === 'auth' ? 401 : 403, request, env);
@@ -318,6 +383,7 @@ const ROUTES = {
   'POST /admin/user': { auth: true, fn: adminSetUser },
   'POST /ai/chat': { open: true, fn: handleAI },
   'POST /ai/stream': { open: true, fn: handleAIStream },
+  'POST /check': { open: true, fn: handleCheck },
   'POST /fetch': { open: true, fn: handleFetch },
 };
 
