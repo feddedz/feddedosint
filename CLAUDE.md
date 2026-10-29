@@ -135,33 +135,3 @@ Develop on a feature branch. Commit messages are a plain `update` (intentionally
 Open a PR to `main`, merge it, re-sync the branch to `main`. Merging deploys the site; tell the
 owner when a `worker.js` re-paste is also needed. **Append a WORKLOG.md entry (§0) in the same PR.**
 
-## 8. Legitimate backlog (safe to build)
-
-- Favicon-hash pivot (mmh3 → Shodan `http.favicon.hash:`).
-- Email/username permutator for the user's own/authorized domains.
-- Dork packs for a target's own exposed secrets/configs (self-audit).
-- Bulk CIDR/ASN sweep → Shodan InternetDB per host → map.
-- Wayback endpoint harvester (CDX API).
-- Subdomain-takeover / dangling-CNAME checks on the user's own domains.
-- Infrastructure report/dossier export (domains, IPs, ASNs, orgs — not people).
-- Graph/engine polish over the public collectors in `collect.js`.
-
-## 9. Scope & boundary (read before accepting a feature)
-
-OSINT **on public data**, aimed at the user's **own assets** or subjects they're **authorized**
-to investigate (their exposure, their infrastructure, their accounts, authorized pentests, CTFs).
-This project does **not**, and future sessions must not, build:
-
-- Facial recognition / biometric ID of unknown people; camera-network, cross-camera, or
-  license-plate tracking.
-- Real-time tracking or geolocation of private individuals; movement/routine prediction;
-  movement alerts on named people.
-- Telecom/metadata integration; unauthorized access to accounts or restricted / "private
-  intelligence" databases; aggregating or displaying others' breached credentials.
-- Predictive threat / "suspicious person" scoring of individuals; automated dossiers on private
-  persons; deanonymizing anonymous individuals.
-- Autonomous agents that surveil people or take consequential actions without human review.
-
-The tool already reflects this: breach checks only *your own* exposure and shows metadata, not
-leaked credentials; the autonomous engine works from public infrastructure collectors, not people.
-When a request lands near the line, build the authorized, public-data version and say so.
