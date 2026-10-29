@@ -14,6 +14,8 @@ import phone from './tools/phone.js';
 import breach from './tools/breach.js';
 import domain from './tools/domain.js';
 import recon from './tools/recon.js';
+import monitor from './tools/monitor.js';
+import wayback from './tools/wayback.js';
 import ip from './tools/ip.js';
 import asn from './tools/asn.js';
 import url from './tools/url.js';
@@ -42,7 +44,7 @@ const GROUPS = [
   { id: 'start', label: '', tools: [overview] },
   { id: 'intelligence', label: 'intelligence', tools: [engine, chat] },
   { id: 'identity', label: 'identity', tools: [username, email, phone, breach] },
-  { id: 'network', label: 'network', tools: [recon, domain, ip, asn, url, mac, cidr] },
+  { id: 'network', label: 'network', tools: [recon, monitor, domain, ip, asn, url, mac, cidr, wayback] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
   { id: 'assets', label: 'assets', tools: [crypto, image, file] },
   { id: 'threat', label: 'threat', tools: [cve, headers] },
@@ -52,7 +54,7 @@ const GROUPS = [
 ];
 const TITLES = {
   overview: 'universal search', username: 'username intel', email: 'email intel', phone: 'phone intel', breach: 'breach exposure',
-  recon: 'attack surface recon', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
+  recon: 'attack surface recon', monitor: 'change monitoring', wayback: 'wayback endpoints', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
   cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
   extract: 'entity extractor', utils: 'decoders', graph: 'investigation graph', case: 'case file',
@@ -62,7 +64,7 @@ const TITLES = {
 const BLURBS = {
   overview: 'detect & run anything', username: 'one handle, 90+ sites', email: 'provider, security, gravatar',
   phone: 'validate & format any number', breach: 'is your data exposed?',
-  recon: 'map a domain\'s whole attack surface', domain: 'dns, whois, mail, subdomains',
+  recon: 'map a domain\'s whole attack surface', monitor: 'snapshot & alert on changes', wayback: 'archived urls & endpoints', domain: 'dns, whois, mail, subdomains',
   ip: 'location, ports, ownership', asn: 'networks & address space', url: 'dissect & vet a link', mac: 'device maker & formats',
   cidr: 'subnet math, v4 & v6', geo: 'coordinates → place & imagery', map: 'plot infrastructure worldwide',
   crypto: 'btc & eth wallet activity', image: 'reverse search & exif', file: 'static triage & hash lookup',
@@ -77,7 +79,7 @@ const byId = Object.fromEntries(TOOLS.map(t => [t.id, t]));
 const groupOf = Object.fromEntries(GROUPS.flatMap(g => g.tools.map(t => [t.id, g.label || 'start'])));
 const title = t => TITLES[t.id] || t.label;
 // Tools whose empty state is itself useful (no query needed to be worth showing).
-const SHOW_ON_IDLE = new Set(['image', 'dorks', 'breach', 'utils', 'file', 'map']);
+const SHOW_ON_IDLE = new Set(['image', 'dorks', 'breach', 'utils', 'file', 'map', 'monitor']);
 
 const $ = s => document.querySelector(s);
 const nav = $('#tabs'), form = $('#search'), input = $('#q'), out = $('#out');

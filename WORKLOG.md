@@ -14,6 +14,19 @@ Format:
 
 ---
 
+### 2026-10-29 21:04 UTC — monitor + wayback tools (power features)
+- New **monitor** tool: snapshots a domain/IP's public footprint (CT subdomains, DNS, open ports,
+  CVEs) and diffs each re-check against the last, flagging new exposure as ranked alerts. Watchlist
+  persists per-browser; public-source + client-side only.
+- New **wayback** tool: harvests archived URLs for a host from the Internet Archive CDX API — flags
+  backups/configs/keys/admin/secret-param paths, lists hostnames and every query parameter seen.
+- Wired both into the network group, universal launcher, icons; monitor shows its watchlist on idle.
+- Added store watchlist helpers (watches/addWatch/removeWatch/saveSnapshot) and .chips CSS.
+- Tested headless: baseline → watch → change → diff shows the new port & subdomain; wayback parses
+  and flags; all tools load with no console errors.
+- files: js/tools/monitor.js, js/tools/wayback.js, js/app.js, js/icons.js, js/store.js, css/style.css
+- PR: not yet shipped
+
 ### 2026-10-29 20:46 UTC — one shared Worker + sign-in wall
 - Pinned the backend to `https://feddedosint-api.bptiktok6.workers.dev` (`BACKEND` in js/backend.js);
   removed the per-browser backend URL setting so every visitor uses the same Worker.
