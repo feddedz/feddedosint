@@ -4,6 +4,7 @@
 const P = {
   overview: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',          // magnifier
   username: '<circle cx="12" cy="8" r="3.4"/><path d="M5.5 19c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/>',
+  ogu: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3.3 2.5-5.5 5.5-5.5"/><circle cx="16.5" cy="14.5" r="4"/><path d="M19.4 17.4L22 20"/>',
   email: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>',
   phone: '<rect x="7" y="3" width="10" height="18" rx="2.2"/><path d="M11 18h2"/>',
   breach: '<path d="M12 3l7 3v5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6z"/><path d="M12 9v3.5"/><circle cx="12" cy="15.5" r="0.6" fill="currentColor"/>',

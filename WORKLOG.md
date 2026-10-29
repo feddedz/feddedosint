@@ -14,7 +14,18 @@ Format:
 
 ---
 
-### 2026-10-29 21:53 UTC — risk scoring in engine/sweep, dossier export, favicon-hash
+### 2026-10-29 23:47 UTC — ogu (OG username finder)
+- New **ogu** tool (identity): finds usernames across popular sites + all 69 gaming platforms.
+  Two modes: a handle -> where it's taken vs available; a wildcard pattern (? = one char, * = 1-2)
+  -> generates matching candidates and ranks them by availability (handle hunting).
+- Reuses the existing server-side existence checks (be.deepScan + SITES dataset); availability
+  checking only, never account contents. Approved sign-in required (uses the backend proxy).
+- Tested headless: single-handle shows taken/available across popular+games; pattern expands z?x
+  to 24 ranked candidates with the taken one sinking to the bottom; no console errors.
+- files: js/tools/ogu.js, js/app.js, js/icons.js
+- PR: not yet shipped
+
+### ### 2026-10-29 21:53 UTC — risk scoring in engine/sweep, dossier export, favicon-hash
 - **Risk scoring everywhere:** collectors (js/collect.js) now emit structured findings; the
   **engine** shows a ranked risk-posture card and feeds it to the AI, and **sweep** shows a posture
   score. Same js/risk.js the playbook uses.
