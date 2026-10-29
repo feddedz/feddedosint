@@ -84,7 +84,8 @@ export default {
 
 - **search** (overview) — detects input type, runs the best tool, offers related ones.
 - **identity:** username (auto deep-scan ~700 sites + rich API checks), email, phone, breach.
-- **network:** recon (attack-surface mapper), domain, ip, asn, url, mac, cidr.
+- **network:** recon (attack-surface mapper), monitor (change snapshots + alerts), domain, ip, asn,
+  url, mac, cidr, wayback (Internet Archive CDX endpoint harvester).
 - **geo:** geo, map (Leaflet infrastructure map).
 - **assets:** crypto (btc/eth), image, file (static triage + hash).
 - **threat:** cve, headers (email header analysis).

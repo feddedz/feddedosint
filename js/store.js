@@ -116,3 +116,27 @@ export function geoStore(ip, info) {
   if (keys.length > 500) keys.sort((a, b) => all[a].at - all[b].at).slice(0, keys.length - 500).forEach(k => delete all[k]);
   write(GEO, all);
 }
+
+// ---------- monitor watchlist ----------
+// Each target keeps its latest snapshot so a re-check can diff against it (change alerts).
+// Public-infrastructure data only (certs, DNS, ports); nothing is uploaded.
+const WATCH = 'feddedosint.watch';
+export const watches = () => read(WATCH, []);
+export function addWatch(tool, value) {
+  const list = watches();
+  const id = `${tool}:${value}`;
+  if (list.some(w => w.id === id)) return false;
+  list.push({ id, tool, value, added: Date.now(), snapshot: null, checked: 0 });
+  write(WATCH, list);
+  return true;
+}
+export function removeWatch(id) { write(WATCH, watches().filter(w => w.id !== id)); }
+export const isWatched = (tool, value) => watches().some(w => w.id === `${tool}:${value}`);
+export function saveSnapshot(id, snapshot) {
+  const list = watches();
+  const w = list.find(x => x.id === id);
+  if (!w) return;
+  w.snapshot = snapshot;
+  w.checked = Date.now();
+  write(WATCH, list);
+}

@@ -989,3 +989,7 @@ body.locked .app, body.locked .palette { display: none; }
 .lockbrand { font-weight: 700; font-size: 15px; letter-spacing: .02em; }
 .lockbrand span { color: var(--muted); }
 .lockactions { margin: 16px 0 12px; gap: 8px; align-items: center; }
+
+/* ---------- chip wrap (wayback hosts / parameters, monitor lists) ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.statnum.warn { color: #e6a23c; }
