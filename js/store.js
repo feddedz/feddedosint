@@ -31,7 +31,7 @@ export const currentUser = () => getSession()?.user || null;
 
 // ---------- settings ----------
 const SETTINGS = 'feddedosint.settings';
-const defaults = { theme: 'dark', backendUrl: '', graph: true, rail: false, closedGroups: [] };
+const defaults = { theme: 'dark', graph: true, rail: false, closedGroups: [] };
 export const settings = () => ({ ...defaults, ...read(SETTINGS, {}) });
 export const setSetting = (k, v) => { const s = settings(); s[k] = v; write(SETTINGS, s); };
 

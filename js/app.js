@@ -4,6 +4,8 @@ import { icon, iconEl } from './icons.js';
 import {
   applyTheme, remember, recentFor, recentAll, clearRecent, trackNode, trackEdge, settings, setSetting,
 } from './store.js';
+import * as be from './backend.js';
+import { lockReason, renderLock } from './lock.js';
 
 import overview, { classify } from './tools/overview.js';
 import username from './tools/username.js';
@@ -255,7 +257,27 @@ async function run(tool, q, { idle = false } = {}) {
   }
 }
 
+// ---------- sign-in wall ----------
+// Until the visitor is signed in and approved, only the lock screen is shown.
+const lockEl = $('#lock');
+let authError = '';
+
+function locked() {
+  const reason = lockReason();
+  body.classList.toggle('locked', !!reason);
+  lockEl.hidden = !reason;
+  if (reason) renderLock(lockEl, reason, { error: authError, onRetry: recheck });
+  return !!reason;
+}
+
+async function recheck() {
+  authError = '';
+  if (be.isLoggedIn()) await be.refreshMe().catch(() => {});
+  route();
+}
+
 function route() {
+  if (locked()) return;
   const { tool, q, hasQuery } = parseHash();
   select(tool);
   if (!tool.noInput && hasQuery) input.value = q;
@@ -358,6 +380,7 @@ form.addEventListener('submit', e => {
 input.addEventListener('input', updateHint);
 addEventListener('hashchange', route);
 addEventListener('keydown', e => {
+  if (body.classList.contains('locked')) return;
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); pal.hidden ? openPalette() : closePalette(); }
   else if (e.key === 'Escape') { if (!pal.hidden) closePalette(); body.classList.remove('drawer'); }
@@ -367,9 +390,10 @@ addEventListener('keydown', e => {
   }
 });
 
-// Pick up a GitHub OAuth redirect (#auth=…), and load the current user for an
-// existing session, before the first route so gates read the right state.
-import('./backend.js').then(async be => {
-  await be.consumeAuthRedirect().catch(() => {});
-  if (be.isLoggedIn() && !be.user()) await be.refreshMe().catch(() => {});
-}).finally(route);
+// Pick up a GitHub OAuth redirect (#auth=…) and refresh the signed-in user (so an approval
+// takes effect on the next visit) before the first route, which decides whether to unlock.
+(async () => {
+  const res = await be.consumeAuthRedirect().catch(() => 'error');
+  if (res === 'error') authError = 'GitHub sign-in didn\u2019t complete — please try again.';
+  else if (!res && be.isLoggedIn()) await be.refreshMe().catch(() => {});
+})().finally(route);

@@ -1,4 +1,4 @@
-import { h, card, grid, muted, badge, ext, pivot, fmtDate } from '../util.js';
+import { h, card, grid, muted, badge, fmtDate } from '../util.js';
 import { icon } from '../icons.js';
 import * as be from '../backend.js';
 
@@ -82,14 +82,8 @@ export default {
   noTrack: true,
 
   async run() {
-    if (!be.backendConfigured()) {
-      return card('backend not set', { wide: true },
-        muted('Accounts and the AI run on the project backend.'),
-        h('p', {}, 'If you host your own, add the backend URL in ', pivot('settings', 'backend', 'Settings'), '.'),
-        h('p', { class: 'muted small' }, 'setup: ', ext('https://github.com/feddedz/feddedosint/blob/main/worker/README.md', 'worker/README.md')));
-    }
     const info = await be.health(true);
-    if (!info) return card('backend unreachable', { wide: true }, muted('The backend did not respond. Check the URL in Settings.'));
+    if (!info) return card('backend unreachable', { wide: true }, muted('The backend did not respond. Try again in a moment.'));
     if (!info.github) return card('github sign-in not configured', { wide: true }, muted('The backend is up but GitHub OAuth is not set (GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET on the Worker).'));
     return be.isLoggedIn() ? loggedInView() : loginView();
   },

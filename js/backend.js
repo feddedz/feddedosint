@@ -1,9 +1,11 @@
 // Client for the feddedosint Worker. GitHub sign-in; AI is gated to approved pro users.
 
-import { settings, setSetting, getSession, setSession, authToken, currentUser } from './store.js';
+import { setSetting, getSession, setSession, authToken, currentUser } from './store.js';
 
-export const backendURL = () => (settings().backendUrl || '').replace(/\/+$/, '');
-export const backendConfigured = () => !!backendURL();
+// The one shared Worker every visitor uses. Not configurable per browser.
+export const BACKEND = 'https://feddedosint-api.bptiktok6.workers.dev';
+export const backendURL = () => BACKEND;
+export const backendConfigured = () => true;
 
 let healthCache = null;
 export const clearHealthCache = () => { healthCache = null; };

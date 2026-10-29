@@ -14,6 +14,17 @@ Format:
 
 ---
 
+### 2026-10-29 20:46 UTC — one shared Worker + sign-in wall
+- Pinned the backend to `https://feddedosint-api.bptiktok6.workers.dev` (`BACKEND` in js/backend.js);
+  removed the per-browser backend URL setting so every visitor uses the same Worker.
+- New sign-in wall (`js/lock.js`): nothing renders until the visitor is signed in with GitHub and
+  approved; pending/denied/expired sessions see a lock screen. The session is re-checked on each load.
+- Tested headless: anon / expired / pending / denied / GitHub-error all locked; approved user loads all
+  29 tools with no console errors; logging out re-locks. Worker unchanged (no re-paste needed).
+- files: js/lock.js, js/app.js, js/backend.js, js/store.js, js/tools/settings.js, js/tools/account.js,
+  js/tools/chat.js, index.html, css/style.css, README.md, worker/README.md, CLAUDE.md
+- PR: not yet shipped
+
 ### 2026-10-29 09:00 UTC — add CLAUDE.md guide + this worklog
 - Put the project handoff into `CLAUDE.md` (auto-loads for future Claude sessions) and added the
   worklog rule: every change must append a timestamped entry here.

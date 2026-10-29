@@ -162,11 +162,6 @@ export default {
   noTrack: true,
 
   async run() {
-    if (!be.backendConfigured()) {
-      return card('ai not set up', { wide: true },
-        muted('The chat uses the Gemini key through the Worker, so the key is never exposed in the browser.'),
-        h('p', {}, 'Add your Worker URL in ', pivot('settings', 'backend', 'Settings'), ' and sign in on the ', pivot('account', '', 'account'), ' tab.'));
-    }
     const info = await be.health(true);
     if (!info?.ai) return card('ai unavailable', { wide: true }, muted('The backend is connected but no AI model is configured on it.'));
     const g = aiGateMessage();

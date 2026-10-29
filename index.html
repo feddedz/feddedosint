@@ -14,8 +14,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="locked">
 <canvas id="snow" aria-hidden="true"></canvas>
+<div id="lock" class="lock"></div>
 
 <div class="app">
   <aside id="side" class="side" aria-label="tools">
@@ -28,7 +29,7 @@
     </div>
     <button id="paletteBtn" class="palbtn" type="button" title="jump to (Ctrl K)"><span class="ico"></span><span class="navtext">jump to…</span><kbd class="navtext"></kbd></button>
     <nav id="tabs"></nav>
-    <div class="side-foot"><span class="navtext muted small">client-side · no tracking</span></div>
+    <div class="side-foot"><span class="navtext muted small">members only · no tracking</span></div>
   </aside>
   <div id="scrim" class="scrim"></div>
 
