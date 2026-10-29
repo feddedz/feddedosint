@@ -69,13 +69,24 @@ const AVAIL = { none: 'available', found: 'taken', unknown: 'unknown' };
 const foundSites = (states) => Object.entries(states).filter(([, st]) => st === 'found').map(([n]) => n);
 const freeSites = (states) => Object.entries(states).filter(([, st]) => st === 'none').map(([n]) => n);
 
-async function singleHandle(handle, container, out) {
-  const sites = uniqSites([...POPULAR, ...GAMES]);
+// Pick the site set for a scope: 'fast' = curated popular + games; 'all' = the whole dataset.
+function siteSet(scope, adult) {
+  const base = scope === 'all' ? SITES : [...POPULAR, ...GAMES];
+  return uniqSites(base.filter(s => adult || s.c !== 'adult'));
+}
+
+async function singleHandle(handle, container, out, { scope, adult }) {
+  const sites = siteSet(scope, adult);
   out.replaceChildren(h('div', { class: 'loading' }, h('span', { class: 'spin' }), `checking ${handle} across ${sites.length} platforms…`));
   const states = await checkHandle(handle, sites);
   if (!container.isConnected) return;
   const taken = foundSites(states), free = freeSites(states);
   const unver = sites.length - taken.length - free.length;
+
+  // Category breakdown (taken per category).
+  const catTaken = {};
+  for (const n of taken) { const c = byName[n]?.c || 'misc'; catTaken[c] = (catTaken[c] || 0) + 1; }
+  const cats = Object.entries(catTaken).sort((a, b) => b[1] - a[1]);
 
   const sc = (n, l, tone) => h('div', { class: 'statcell' }, h('div', { class: 'statnum' + (tone ? ' ' + tone : '') }, String(n)), h('div', { class: 'statlbl muted small' }, l));
   const takenCard = card(`taken (${taken.length})`, { wide: true },
@@ -83,41 +94,47 @@ async function singleHandle(handle, container, out) {
       const s = byName[n]; const url = s.u.replace(/\{u\}/g, encodeURIComponent(handle));
       return h('span', { class: 'chip' }, ext(url, n));
     })) : muted('Not taken on any checked platform.'));
+  const catCard = cats.length ? card('taken by category', {},
+    h('table', { class: 'records' }, h('tbody', {}, cats.map(([c, n]) =>
+      h('tr', {}, h('td', {}, badge(c, 'muted')), h('td', { class: 'muted small' }, `${n} platform${n === 1 ? '' : 's'}`)))))) : null;
   const freeCard = card(`available (${free.length})`, { wide: true, collapsed: free.length > 60 },
     muted('Handle appears free on these — verify by trying to register.'),
     h('div', { class: 'chips' }, free.map(n => h('span', { class: 'chip' }, n))));
 
   out.replaceChildren(grid(
     card('result', { wide: true, actions: copyBtn(() => `${handle}\nTAKEN: ${taken.join(', ')}\nFREE: ${free.join(', ')}`, 'copy') },
-      h('p', {}, h('strong', { style: 'font-size:16px' }, handle)),
-      h('div', { class: 'statrow' }, sc(taken.length, 'taken', 'warn'), sc(free.length, 'available', ''), sc(unver, 'unverified'), sc(GAMES.length, 'games checked')),
-      h('p', { class: 'muted small', style: 'margin-top:8px' }, 'also open the full ', pivot('username', handle, 'username deep-scan'), ' (~700 sites with profile detail).')),
-    takenCard, freeCard));
+      h('p', {}, h('strong', { style: 'font-size:16px' }, handle), ' ', badge(scope === 'all' ? 'full dataset' : 'popular + games', 'muted')),
+      h('div', { class: 'statrow' }, sc(taken.length, 'taken', 'warn'), sc(free.length, 'available', ''), sc(unver, 'unverified'), sc(sites.length, 'checked')),
+      h('p', { class: 'muted small', style: 'margin-top:8px' }, 'also open the full ', pivot('username', handle, 'username deep-scan'), ' for profile detail (avatars, bios, join dates).')),
+    takenCard, catCard, freeCard));
 }
 
-async function patternHunt(pattern, container, out, cap) {
-  const cands = expand(pattern, cap);
+async function patternHunt(pattern, container, out, cap, { scope, adult } = { scope: 'fast', adult: false }) {
+  // 'all' checks each candidate against a broader set (slower) but bounds the total ~checks.
+  const sig = scope === 'all' ? siteSet('fast', adult) : SIGNAL;
+  const effCap = scope === 'all' ? Math.min(cap, 16) : cap;
+  const cands = expand(pattern, effCap);
   if (!cands.length) { out.replaceChildren(muted('no candidates from that pattern')); return; }
-  out.replaceChildren(h('div', { class: 'loading' }, h('span', { class: 'spin' }), `checking ${cands.length} candidate(s) across ${SIGNAL.length} signal platforms…`));
+  out.replaceChildren(h('div', { class: 'loading' }, h('span', { class: 'spin' }), `checking ${cands.length} candidate(s) across ${sig.length} platform(s)…`));
   const rows = [];
   for (const cand of cands) {
     if (!container.isConnected) return;
-    const states = await checkHandle(cand, SIGNAL);
+    const states = await checkHandle(cand, sig);
     const taken = foundSites(states), free = freeSites(states);
-    rows.push({ cand, taken, free, score: free.length - taken.length });
+    rows.push({ cand, taken, free, score: free.length - taken.length, total: sig.length });
   }
   if (!container.isConnected) return;
   rows.sort((a, b) => b.score - a.score || a.cand.localeCompare(b.cand));
   const fullyFree = rows.filter(r => r.taken.length === 0);
 
   const table = h('table', { class: 'records' }, h('tbody', {}, rows.map(r => h('tr', {},
-    h('td', {}, r.taken.length === 0 ? badge('all free', 'ok') : badge(`${r.free.length}/${SIGNAL.length} free`, r.free.length ? 'warn' : 'muted')),
+    h('td', {}, r.taken.length === 0 ? badge('all free', 'ok') : badge(`${r.free.length}/${r.total} free`, r.free.length ? 'warn' : 'muted')),
     h('td', {}, pivot('ogu', r.cand, r.cand)),
     h('td', { class: 'muted small' }, r.taken.length ? 'taken on ' + r.taken.join(', ') : 'no major platform has it')))));
 
   out.replaceChildren(grid(
     card('handle hunt', { wide: true, actions: copyBtn(() => fullyFree.map(r => r.cand).join('\n'), 'copy all-free') },
-      muted(`Pattern “${pattern}” → ${rows.length} candidate(s), ranked by availability across ${SIGNAL.length} major platforms. “all free” = no checked platform has it.`),
+      muted(`Pattern “${pattern}” → ${rows.length} candidate(s), ranked by availability across ${sig.length} platform(s). “all free” = no checked platform has it.`),
       h('p', {}, h('strong', {}, `${fullyFree.length}`), ' candidate(s) free on every checked platform.'),
       table)));
 }
@@ -141,13 +158,38 @@ export default {
         h('p', {}, pivot('account', '', 'sign in')));
     }
 
+    const isPattern = /[?*]/.test(input);
     const out = h('div', {});
     const container = h('div', {}, out);
-    const isPattern = /[?*]/.test(input);
-    requestAnimationFrame(() => {
-      (isPattern ? patternHunt(input, container, out, 24) : singleHandle(input, container, out))
-        .catch(e => { if (container.isConnected) out.replaceChildren(h('p', { class: 'error' }, e?.message || 'failed')); });
-    });
+
+    // Controls: scan scope + adult opt-in (single-handle), or candidate count (pattern).
+    let scope = isPattern ? 'fast' : 'fast';
+    let adult = false;
+    let cap = 24;
+    const start = () => {
+      requestAnimationFrame(() => {
+        (isPattern ? patternHunt(input, container, out, cap, { scope, adult }) : singleHandle(input, container, out, { scope, adult }))
+          .catch(e => { if (container.isConnected) out.replaceChildren(h('p', { class: 'error' }, e?.message || 'failed')); });
+      });
+    };
+
+    const seg = (label, on, onClick) => { const b = h('button', { class: 'seg' + (on ? ' on' : ''), type: 'button' }, label); b.onclick = onClick; return b; };
+    const scopeSeg = h('div', { class: 'segset' });
+    const rebuildScope = () => scopeSeg.replaceChildren(
+      seg('popular + games', scope === 'fast', () => { scope = 'fast'; rebuildScope(); start(); }),
+      seg(isPattern ? 'all (slower)' : `everything (~${SITES.length})`, scope === 'all', () => { scope = 'all'; rebuildScope(); start(); }));
+    rebuildScope();
+    const adultChk = h('label', { class: 'muted small', style: 'display:inline-flex;gap:5px;align-items:center;cursor:pointer' },
+      Object.assign(h('input', { type: 'checkbox' }), { onchange: e => { adult = e.target.checked; start(); } }), 'include adult');
+
+    const controls = card('scan', { wide: true },
+      h('div', { class: 'row wrap', style: 'gap:12px;align-items:center' },
+        h('span', { class: 'muted small' }, isPattern ? 'check candidates against' : 'scan'),
+        scopeSeg, adultChk,
+        isPattern ? h('span', { class: 'muted small' }, `pattern: ${input}`) : null));
+
+    container.replaceChildren(controls, out);
+    start();
     return container;
   },
 };
