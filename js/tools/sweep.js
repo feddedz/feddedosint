@@ -1,4 +1,5 @@
 import { h, card, grid, muted, badge, ext, pivot, copyBtn, getJSON, isIP } from '../util.js';
+import { finding, posture, toneOf } from '../risk.js';
 
 // Bulk exposure sweep over an ASN or CIDR. Expands the block to host IPs, queries Shodan's free
 // InternetDB per host (browser-accessible, no key), and aggregates open ports, known CVEs and
@@ -96,8 +97,15 @@ export default {
     }
     const topPorts = Object.entries(portHist).sort((a, b) => b[1] - a[1]).slice(0, 24);
 
+    // Risk posture from the aggregated findings.
+    const riskFindings = [
+      ...findings.map(f => finding('sensitive-service', f)),
+      ...[...cveSet].map(v => finding('cve', { cve: v })),
+    ];
+    const p = posture(riskFindings);
+
     const sc = (n, l, warn) => h('div', { class: 'statcell' }, h('div', { class: 'statnum' + (warn && n ? ' warn' : '') }, typeof n === 'number' ? n.toLocaleString('en-US') : n), h('div', { class: 'statlbl muted small' }, l));
-    const summary = card('sweep', { wide: true, actions: badge(`${live.length} live / ${hosts.length} scanned`, live.length ? 'ok' : 'muted') },
+    const summary = card('sweep', { wide: true, actions: h('div', { class: 'row', style: 'gap:6px' }, riskFindings.length ? badge(`risk ${p.score}/100 · ${p.sev}`, toneOf(p.sev)) : null, badge(`${live.length} live / ${hosts.length} scanned`, live.length ? 'ok' : 'muted')) },
       muted(`${scopeLabel}. Scanned ${hosts.length.toLocaleString('en-US')}${total > hosts.length ? ` of ${total.toLocaleString('en-US')} (capped at ${CAP})` : ''} host(s) against Shodan InternetDB.`),
       h('div', { class: 'statrow' },
         sc(live.length, 'hosts with exposure'),

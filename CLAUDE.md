@@ -53,7 +53,7 @@ js/backend.js           client for the Worker (auth, admin, aiChat, aiStream, de
 js/collect.js           structured collection (domain/ip/asn/url/email) used by engine + chat
 js/risk.js              shared risk scoring (finding/posture/rank) used by playbook
 js/sites.js             ~700 platform specs (WhatsMyName dataset) for the username deep scan
-js/icons.js snow.js leaflet.js md5.js ai.js gate.js   support modules
+js/icons.js snow.js leaflet.js md5.js mmh3.js ai.js gate.js   support modules
 js/tools/*.js           one module per tool (see §4)
 worker/worker.js        the backend (see §5)
 worker/worker.test.mjs  Node logic tests for the Worker
@@ -87,7 +87,7 @@ export default {
 - **identity:** username (auto deep-scan ~700 sites + rich API checks), email, phone, breach.
 - **network:** recon (attack-surface mapper), monitor (change snapshots + alerts), sweep (bulk
   ASN/CIDR exposure), domain, ip, asn, url, mac, cidr, takeover (dangling-CNAME audit),
-  wayback (Internet Archive CDX endpoint harvester).
+  favicon (Shodan favicon-hash pivot), wayback (Internet Archive CDX endpoint harvester).
 - **geo:** geo, map (Leaflet infrastructure map).
 - **assets:** crypto (btc/eth), image, file (static triage + hash).
 - **threat:** cve, headers (email header analysis).
@@ -95,7 +95,7 @@ export default {
 - **tools:** extract (IOCs from text), utils (encode/decode/hash).
 - **intelligence:** engine (autonomous, from `collect.js`), playbook (automated audit workflow +
   risk-scored report, `js/risk.js`), chat (streaming Gemini).
-- **workspace:** graph, case, account, settings.
+- **workspace:** graph, case, dossier (infra report export), account, settings.
 
 Sources are public APIs that allow browser requests (GitHub, GitLab, Reddit, crt.sh, rdap.org,
 ipwho.is, Shodan InternetDB, Cloudflare/Google DoH, HIBP with the user's key, etc.).
@@ -109,7 +109,7 @@ Endpoints: `GET /health`; `GET /auth/github/start` + `/callback`; `GET /auth/me`
 `POST /auth/logout`; `GET /admin/users` + `POST /admin/user` (admin); `POST /ai/chat` and
 `POST /ai/stream` (SSE, visible thinking) — **pro** gated, BESTMODEL fallback, key stays
 server-side; `POST /check` — batch username existence checks (**approved** gated);
-`POST /fetch` — SSRF-guarded proxy returning status, finalUrl, headers, body.
+`POST /fetch` — SSRF-guarded proxy returning status, finalUrl, headers, body (or base64 with bytes:true, for favicon hashing).
 
 Access: users `pending`→`approved`/`denied`; `pro` gates the AI; admin = `ADMIN_USER`
 (auto approved+pro). `gate(user, needPro)` enforces it; CORS from `ALLOWED_ORIGINS`;
