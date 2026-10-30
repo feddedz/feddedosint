@@ -88,7 +88,8 @@ export default {
   availability across popular sites + games, wildcard handle-hunting), email, phone, breach.
 - **network:** recon (attack-surface mapper), monitor (change snapshots + alerts), sweep (bulk
   ASN/CIDR exposure), domain, ip, asn, url, mac, cidr, takeover (dangling-CNAME audit),
-  favicon (Shodan favicon-hash pivot), wayback (Internet Archive CDX endpoint harvester).
+  typosquat (brand-protection lookalike-domain finder), favicon (Shodan favicon-hash pivot),
+  wayback (Internet Archive CDX endpoint harvester).
 - **geo:** geo, map (Leaflet infrastructure map).
 - **assets:** crypto (btc/eth), image, file (static triage + hash).
 - **threat:** assess (authorized web vuln assessment: findings + impact + remediation, no exploit

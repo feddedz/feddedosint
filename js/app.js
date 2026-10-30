@@ -18,6 +18,7 @@ import recon from './tools/recon.js';
 import monitor from './tools/monitor.js';
 import wayback from './tools/wayback.js';
 import takeover from './tools/takeover.js';
+import typosquat from './tools/typosquat.js';
 import sweep from './tools/sweep.js';
 import playbook from './tools/playbook.js';
 import dossier from './tools/dossier.js';
@@ -52,7 +53,7 @@ const GROUPS = [
   { id: 'start', label: '', tools: [overview] },
   { id: 'intelligence', label: 'intelligence', tools: [engine, playbook, chat] },
   { id: 'identity', label: 'identity', tools: [username, ogu, email, phone, breach] },
-  { id: 'network', label: 'network', tools: [recon, monitor, sweep, domain, ip, asn, url, mac, cidr, takeover, wayback, favicon] },
+  { id: 'network', label: 'network', tools: [recon, monitor, sweep, domain, ip, asn, url, mac, cidr, takeover, typosquat, wayback, favicon] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
   { id: 'assets', label: 'assets', tools: [crypto, image, file] },
   { id: 'threat', label: 'threat', tools: [assess, cve, headers] },
@@ -62,7 +63,7 @@ const GROUPS = [
 ];
 const TITLES = {
   overview: 'universal search', username: 'username intel', ogu: 'og username finder', email: 'email intel', phone: 'phone intel', breach: 'breach exposure',
-  recon: 'attack surface recon', monitor: 'change monitoring', wayback: 'wayback endpoints', takeover: 'subdomain takeover', sweep: 'bulk exposure sweep', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
+  recon: 'attack surface recon', monitor: 'change monitoring', wayback: 'wayback endpoints', takeover: 'subdomain takeover', typosquat: 'brand protection', sweep: 'bulk exposure sweep', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
   assess: 'vulnerability assessment', cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
   extract: 'entity extractor', utils: 'decoders', graph: 'investigation graph', case: 'case file',
@@ -72,7 +73,7 @@ const TITLES = {
 const BLURBS = {
   overview: 'detect & run anything', username: 'one handle, 90+ sites', ogu: 'hunt handles across sites & games', email: 'provider, security, gravatar',
   phone: 'validate & format any number', breach: 'is your data exposed?',
-  recon: 'map a domain\'s whole attack surface', monitor: 'snapshot & alert on changes', wayback: 'archived urls & endpoints', takeover: 'dangling-CNAME audit', sweep: 'asn/cidr → exposure', domain: 'dns, whois, mail, subdomains',
+  recon: 'map a domain\'s whole attack surface', monitor: 'snapshot & alert on changes', wayback: 'archived urls & endpoints', takeover: 'dangling-CNAME audit', typosquat: 'lookalike domain finder', sweep: 'asn/cidr → exposure', domain: 'dns, whois, mail, subdomains',
   ip: 'location, ports, ownership', asn: 'networks & address space', url: 'dissect & vet a link', mac: 'device maker & formats',
   cidr: 'subnet math, v4 & v6', geo: 'coordinates → place & imagery', map: 'plot infrastructure worldwide',
   crypto: 'btc & eth wallet activity', image: 'reverse search & exif', file: 'static triage & hash lookup',
