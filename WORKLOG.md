@@ -14,7 +14,23 @@ Format:
 
 ---
 
-### 2026-10-30 00:36 UTC — playbook folds in web-config assessment
+### 2026-10-30 00:46 UTC — five new tools: cert, transform, wellknown, reputation, emailperm
+- **cert** (network): crt.sh certificate-transparency history — subdomains from SANs, issuers,
+  timeline and expiry warning.
+- **transform** (tools): CyberChef-style chainable pipeline (base64/url/hex/binary/rot13/reverse/
+  case/strip + md5/sha1/sha256), fully offline, live output.
+- **wellknown** (network): fetches robots.txt / sitemap / security.txt / .well-known via the proxy;
+  surfaces disallowed paths, sitemap URLs and the security contact. Approved sign-in.
+- **reputation** (threat): GreyNoise community classification + Shodan exposure + one-click
+  lookups across VT/AbuseIPDB/Spamhaus/Talos/etc. Accepts IP or domain.
+- **emailperm** (identity): name + domain -> common corporate email formats with verify pivots
+  (authorized/own-org use; generates candidates, doesn't confirm).
+- Tested headless: all five render correctly; transform base64 verified; full smoke = 45 tools,
+  0 console errors.
+- files: js/tools/{cert,transform,wellknown,reputation,emailperm}.js, js/app.js, js/icons.js
+- PR: not yet shipped
+
+### ### 2026-10-30 00:36 UTC — playbook folds in web-config assessment
 - **playbook** now runs assess-style web checks on domain targets (missing security headers,
   HttpOnly cookie, exposed .git/.env/phpinfo) as part of the workflow — one run now covers surface,
   exposure, dangling CNAMEs, mail auth AND web config in a single risk-scored report.

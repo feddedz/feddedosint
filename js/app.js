@@ -10,6 +10,7 @@ import { lockReason, renderLock } from './lock.js';
 import overview, { classify } from './tools/overview.js';
 import username from './tools/username.js';
 import ogu from './tools/ogu.js';
+import emailperm from './tools/emailperm.js';
 import email from './tools/email.js';
 import phone from './tools/phone.js';
 import breach from './tools/breach.js';
@@ -17,6 +18,7 @@ import domain from './tools/domain.js';
 import recon from './tools/recon.js';
 import monitor from './tools/monitor.js';
 import wayback from './tools/wayback.js';
+import wellknown from './tools/wellknown.js';
 import takeover from './tools/takeover.js';
 import typosquat from './tools/typosquat.js';
 import sweep from './tools/sweep.js';
@@ -34,6 +36,8 @@ import crypto from './tools/crypto.js';
 import image from './tools/image.js';
 import file from './tools/file.js';
 import assess from './tools/assess.js';
+import cert from './tools/cert.js';
+import reputation from './tools/reputation.js';
 import cve from './tools/cve.js';
 import headers from './tools/headers.js';
 import records from './tools/records.js';
@@ -41,6 +45,7 @@ import resources from './tools/resources.js';
 import dorks from './tools/dorks.js';
 import extract from './tools/extract.js';
 import utils from './tools/utils.js';
+import transform from './tools/transform.js';
 import graph from './tools/graph.js';
 import caseFile from './tools/case.js';
 import account from './tools/account.js';
@@ -52,32 +57,32 @@ import settingsTool from './tools/settings.js';
 const GROUPS = [
   { id: 'start', label: '', tools: [overview] },
   { id: 'intelligence', label: 'intelligence', tools: [engine, playbook, chat] },
-  { id: 'identity', label: 'identity', tools: [username, ogu, email, phone, breach] },
-  { id: 'network', label: 'network', tools: [recon, monitor, sweep, domain, ip, asn, url, mac, cidr, takeover, typosquat, wayback, favicon] },
+  { id: 'identity', label: 'identity', tools: [username, ogu, email, emailperm, phone, breach] },
+  { id: 'network', label: 'network', tools: [recon, monitor, sweep, domain, ip, asn, url, mac, cidr, takeover, typosquat, cert, wellknown, wayback, favicon] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
   { id: 'assets', label: 'assets', tools: [crypto, image, file] },
-  { id: 'threat', label: 'threat', tools: [assess, cve, headers] },
+  { id: 'threat', label: 'threat', tools: [assess, reputation, cve, headers] },
   { id: 'research', label: 'research', tools: [records, dorks, resources] },
-  { id: 'tools', label: 'tools', tools: [extract, utils] },
+  { id: 'tools', label: 'tools', tools: [extract, utils, transform] },
   { id: 'workspace', label: 'workspace', tools: [graph, caseFile, dossier, account, settingsTool] },
 ];
 const TITLES = {
-  overview: 'universal search', username: 'username intel', ogu: 'og username finder', email: 'email intel', phone: 'phone intel', breach: 'breach exposure',
-  recon: 'attack surface recon', monitor: 'change monitoring', wayback: 'wayback endpoints', takeover: 'subdomain takeover', typosquat: 'brand protection', sweep: 'bulk exposure sweep', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
+  overview: 'universal search', username: 'username intel', ogu: 'og username finder', emailperm: 'email permutator', email: 'email intel', phone: 'phone intel', breach: 'breach exposure',
+  recon: 'attack surface recon', monitor: 'change monitoring', wayback: 'wayback endpoints', takeover: 'subdomain takeover', typosquat: 'brand protection', cert: 'certificate transparency', wellknown: 'well-known files', sweep: 'bulk exposure sweep', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
-  assess: 'vulnerability assessment', cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
-  extract: 'entity extractor', utils: 'decoders', graph: 'investigation graph', case: 'case file',
+  assess: 'vulnerability assessment', reputation: 'ip/domain reputation', cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
+  extract: 'entity extractor', utils: 'decoders', transform: 'transform pipeline', graph: 'investigation graph', case: 'case file',
   account: 'account', settings: 'settings', dossier: 'dossier export', favicon: 'favicon hash', engine: 'autonomous engine', chat: 'ai assistant',
 };
 // One short line per tool for the launcher.
 const BLURBS = {
-  overview: 'detect & run anything', username: 'one handle, 90+ sites', ogu: 'hunt handles across sites & games', email: 'provider, security, gravatar',
+  overview: 'detect & run anything', username: 'one handle, 90+ sites', ogu: 'hunt handles across sites & games', emailperm: 'name + domain → emails', email: 'provider, security, gravatar',
   phone: 'validate & format any number', breach: 'is your data exposed?',
-  recon: 'map a domain\'s whole attack surface', monitor: 'snapshot & alert on changes', wayback: 'archived urls & endpoints', takeover: 'dangling-CNAME audit', typosquat: 'lookalike domain finder', sweep: 'asn/cidr → exposure', domain: 'dns, whois, mail, subdomains',
+  recon: 'map a domain\'s whole attack surface', monitor: 'snapshot & alert on changes', wayback: 'archived urls & endpoints', takeover: 'dangling-CNAME audit', typosquat: 'lookalike domain finder', cert: 'certs, SANs & subdomains', wellknown: 'robots, sitemap, security.txt', sweep: 'asn/cidr → exposure', domain: 'dns, whois, mail, subdomains',
   ip: 'location, ports, ownership', asn: 'networks & address space', url: 'dissect & vet a link', mac: 'device maker & formats',
   cidr: 'subnet math, v4 & v6', geo: 'coordinates → place & imagery', map: 'plot infrastructure worldwide',
   crypto: 'btc & eth wallet activity', image: 'reverse search & exif', file: 'static triage & hash lookup',
-  assess: 'scan a site, scored report', cve: 'severity & exploit odds', headers: 'trace & vet an email', records: 'companies, courts, news',
+  assess: 'scan a site, scored report', reputation: 'is this ip/domain bad?', cve: 'severity & exploit odds', headers: 'trace & vet an email', records: 'companies, courts, news',
   dorks: 'operator query builder', resources: 'a directory of osint tools', extract: 'pull iocs from any text', utils: 'encode, decode, hash',
   graph: 'your pivots, visualised', case: 'notes, timeline, reports',
   account: 'sign in with github', settings: 'backend, keys, theme',
@@ -89,7 +94,7 @@ const byId = Object.fromEntries(TOOLS.map(t => [t.id, t]));
 const groupOf = Object.fromEntries(GROUPS.flatMap(g => g.tools.map(t => [t.id, g.label || 'start'])));
 const title = t => TITLES[t.id] || t.label;
 // Tools whose empty state is itself useful (no query needed to be worth showing).
-const SHOW_ON_IDLE = new Set(['image', 'dorks', 'breach', 'utils', 'file', 'map', 'monitor', 'resources']);
+const SHOW_ON_IDLE = new Set(['image', 'dorks', 'breach', 'utils', 'file', 'map', 'monitor', 'resources', 'transform']);
 
 const $ = s => document.querySelector(s);
 const nav = $('#tabs'), form = $('#search'), input = $('#q'), out = $('#out');
