@@ -14,7 +14,15 @@ Format:
 
 ---
 
-### 2026-10-30 00:34 UTC — typosquat (brand protection)
+### 2026-10-30 00:36 UTC — playbook folds in web-config assessment
+- **playbook** now runs assess-style web checks on domain targets (missing security headers,
+  HttpOnly cookie, exposed .git/.env/phpinfo) as part of the workflow — one run now covers surface,
+  exposure, dangling CNAMEs, mail auth AND web config in a single risk-scored report.
+- Tested headless: the 'web config' step runs and the exposed .env is caught; no console errors.
+- files: js/tools/playbook.js
+- PR: not yet shipped
+
+### ### 2026-10-30 00:34 UTC — typosquat (brand protection)
 - New **typosquat** tool (network): generates lookalike domains of a brand (omission, transposition,
   keyboard-adjacent, homoglyph, insertion, hyphenation, rn/m, TLD swaps, combosquats) and checks
   each over public DNS — flags registered ones and, critically, mail-capable ones (phishing-ready),

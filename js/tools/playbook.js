@@ -1,6 +1,40 @@
 import { h, card, grid, muted, badge, ext, pivot, copyBtn, dns, getJSON, isIP, normDomain } from '../util.js';
 import { trackNode, trackEdge, addWatch, saveSnapshot } from '../store.js';
-import { finding, posture, rank, toneOf } from '../risk.js';
+import { finding, posture, rank, toneOf, bandOf } from '../risk.js';
+import * as be from '../backend.js';
+
+// Compact web-config checks (shared idea with the assess tool) folded into the workflow.
+const WEB_HEADERS = [
+  ['content-security-policy', 'Content-Security-Policy', 45, 'No CSP — the main backstop against XSS is missing.'],
+  ['strict-transport-security', 'HSTS', 40, 'No HSTS — visitors can be downgraded to plain HTTP.'],
+  ['x-frame-options', 'X-Frame-Options', 30, 'Page can be framed — clickjacking risk.'],
+  ['x-content-type-options', 'X-Content-Type-Options', 20, 'MIME-sniffing not disabled.'],
+];
+const WEB_PATHS = [
+  ['/.git/config', /\[core\]|repositoryformatversion/i, 90, 'Exposed .git repository', 'Source and credential history can be reconstructed.'],
+  ['/.env', /[A-Z_]+=|DB_PASSWORD|SECRET/i, 95, 'Exposed .env file', 'Secrets/DB passwords likely exposed in plain text.'],
+  ['/phpinfo.php', /phpinfo\(\)|PHP Version/i, 50, 'phpinfo() exposed', 'Discloses full server configuration.'],
+];
+const webFinding = (score, title, why) => ({ score, sev: bandOf(score), title, why });
+
+async function webChecks(host, addFinding, findings, step) {
+  if (!(be.backendConfigured() && be.isApproved())) return;
+  const origin = `https://${host}`;
+  step('web config', `checking security headers & exposed files on ${host}…`);
+  let r = await be.fetchUrl(origin).catch(() => null);
+  if (!r?.ok || !r.data?.status) r = await be.fetchUrl(`http://${host}`).catch(() => null);
+  const headers = r?.data?.headers || {};
+  if (r?.data?.status) {
+    for (const [k, name, score, why] of WEB_HEADERS) if (!(k in headers)) addFinding(webFinding(score, `Missing ${name}`, why), findings);
+    const sc = headers['set-cookie'] || '';
+    if (sc && !/;\s*httponly/i.test(sc)) addFinding(webFinding(35, 'Cookie without HttpOnly', 'XSS could steal the session cookie.'), findings);
+  }
+  await pool(WEB_PATHS, 4, async ([p, sig, score, title, why]) => {
+    const resp = await be.fetchUrl(origin + p).catch(() => null);
+    if (resp?.data?.status === 200 && sig.test(resp.data.body || '')) return { score, title, why };
+    return null;
+  }, (_, hit) => { if (hit) addFinding(webFinding(hit.score, hit.title, hit.why), findings); });
+}
 
 // Automated investigation playbook: one target in, a full workflow runs itself — map the surface,
 // pull exposure, check for dangling CNAMEs and weak mail auth — and out comes a single risk-scored
@@ -99,6 +133,7 @@ async function runPlaybook(target, { step, addFinding, container }) {
     (d.hostnames || []).forEach(hn => addEnt('domain', hn));
   });
 
+  if (kind === 'domain') await webChecks(target, addFinding, findings, step);
   step('done', `workflow complete — ${findings.length} finding(s).`);
   return { kind, findings, entities: [...entities].map(s => { const [tool, value] = s.split('\u0000'); return { tool, value }; }), evidence };
 }
