@@ -91,7 +91,8 @@ export default {
   favicon (Shodan favicon-hash pivot), wayback (Internet Archive CDX endpoint harvester).
 - **geo:** geo, map (Leaflet infrastructure map).
 - **assets:** crypto (btc/eth), image, file (static triage + hash).
-- **threat:** cve, headers (email header analysis).
+- **threat:** assess (authorized web vuln assessment: findings + impact + remediation, no exploit
+  steps), cve, headers (email header analysis).
 - **research:** records, dorks (search-operator builder).
 - **tools:** extract (IOCs from text), utils (encode/decode/hash).
 - **intelligence:** engine (autonomous, from `collect.js`), playbook (automated audit workflow +

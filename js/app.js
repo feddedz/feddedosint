@@ -32,6 +32,7 @@ import map from './tools/map.js';
 import crypto from './tools/crypto.js';
 import image from './tools/image.js';
 import file from './tools/file.js';
+import assess from './tools/assess.js';
 import cve from './tools/cve.js';
 import headers from './tools/headers.js';
 import records from './tools/records.js';
@@ -53,7 +54,7 @@ const GROUPS = [
   { id: 'network', label: 'network', tools: [recon, monitor, sweep, domain, ip, asn, url, mac, cidr, takeover, wayback, favicon] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
   { id: 'assets', label: 'assets', tools: [crypto, image, file] },
-  { id: 'threat', label: 'threat', tools: [cve, headers] },
+  { id: 'threat', label: 'threat', tools: [assess, cve, headers] },
   { id: 'research', label: 'research', tools: [records, dorks] },
   { id: 'tools', label: 'tools', tools: [extract, utils] },
   { id: 'workspace', label: 'workspace', tools: [graph, caseFile, dossier, account, settingsTool] },
@@ -62,7 +63,7 @@ const TITLES = {
   overview: 'universal search', username: 'username intel', ogu: 'og username finder', email: 'email intel', phone: 'phone intel', breach: 'breach exposure',
   recon: 'attack surface recon', monitor: 'change monitoring', wayback: 'wayback endpoints', takeover: 'subdomain takeover', sweep: 'bulk exposure sweep', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
-  cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
+  assess: 'vulnerability assessment', cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
   extract: 'entity extractor', utils: 'decoders', graph: 'investigation graph', case: 'case file',
   account: 'account', settings: 'settings', dossier: 'dossier export', favicon: 'favicon hash', engine: 'autonomous engine', chat: 'ai assistant',
 };
@@ -74,7 +75,7 @@ const BLURBS = {
   ip: 'location, ports, ownership', asn: 'networks & address space', url: 'dissect & vet a link', mac: 'device maker & formats',
   cidr: 'subnet math, v4 & v6', geo: 'coordinates → place & imagery', map: 'plot infrastructure worldwide',
   crypto: 'btc & eth wallet activity', image: 'reverse search & exif', file: 'static triage & hash lookup',
-  cve: 'severity & exploit odds', headers: 'trace & vet an email', records: 'companies, courts, news',
+  assess: 'scan a site, scored report', cve: 'severity & exploit odds', headers: 'trace & vet an email', records: 'companies, courts, news',
   dorks: 'operator query builder', extract: 'pull iocs from any text', utils: 'encode, decode, hash',
   graph: 'your pivots, visualised', case: 'notes, timeline, reports',
   account: 'sign in with github', settings: 'backend, keys, theme',
