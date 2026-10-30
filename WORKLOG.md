@@ -14,7 +14,18 @@ Format:
 
 ---
 
-### 2026-10-29 23:50 UTC — ogu: full-dataset scan + controls
+### 2026-10-30 00:01 UTC — assess (authorized vulnerability assessment)
+- New **assess** tool (threat): probes an authorized target through the proxy and reports findings
+  — exposed files (.git/.env/backups), missing security headers, insecure cookies, version
+  disclosure, directory listing, and known CVEs on the host (Shodan). Each finding carries
+  severity + IMPACT + REMEDIATION; scored report with copy/export. No exploitation steps.
+- Reuses js/risk.js for severity banding; approved sign-in required.
+- Tested headless: flags .env/.git (critical), CVEs (high), missing headers/cookies (low),
+  posture 100/100; no console errors.
+- files: js/tools/assess.js, js/app.js, js/icons.js
+- PR: not yet shipped
+
+### ### 2026-10-29 23:50 UTC — ogu: full-dataset scan + controls
 - **ogu** now checks far more: a scope toggle (popular+games ~85, or everything ~692), an
   adult opt-in (off by default), and a taken-by-category breakdown on single-handle results.
 - Pattern mode gains the same scope control (broader signal set, bounded candidate count).
