@@ -93,7 +93,7 @@ export default {
 - **assets:** crypto (btc/eth), image, file (static triage + hash).
 - **threat:** assess (authorized web vuln assessment: findings + impact + remediation, no exploit
   steps), cve, headers (email header analysis).
-- **research:** records, dorks (search-operator builder).
+- **research:** records, dorks (search-operator builder), resources (searchable OSINT link directory).
 - **tools:** extract (IOCs from text), utils (encode/decode/hash).
 - **intelligence:** engine (autonomous, from `collect.js`), playbook (automated audit workflow +
   risk-scored report, `js/risk.js`), chat (streaming Gemini).

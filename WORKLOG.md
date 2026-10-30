@@ -14,7 +14,18 @@ Format:
 
 ---
 
-### 2026-10-30 00:01 UTC — assess (authorized vulnerability assessment)
+### 2026-10-30 00:08 UTC — resources (OSINT directory) + idle render fix
+- New **resources** tool (research): a searchable, categorized directory of ~97 external OSINT
+  resources across 19 categories (search, username, email, domain/DNS, subdomains, IP/network,
+  cloud, threat-intel, vulns, image/geo/maps, transport, business records, crypto, archives, code,
+  malware, dark web, news). Links the in-app tool at the top of each matching group. Entity/asset/
+  infrastructure scope — deliberately omits private-person lookup services.
+- Fixed a stray 'null' text node on idle render for tools with no examples (js/app.js).
+- Tested headless: 20 cards render, filter narrows categories, no console errors.
+- files: js/tools/resources.js, js/app.js, js/icons.js
+- PR: not yet shipped
+
+### ### 2026-10-30 00:01 UTC — assess (authorized vulnerability assessment)
 - New **assess** tool (threat): probes an authorized target through the proxy and reports findings
   — exposed files (.git/.env/backups), missing security headers, insecure cookies, version
   disclosure, directory listing, and known CVEs on the host (Shodan). Each finding carries

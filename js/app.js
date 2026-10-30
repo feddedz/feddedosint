@@ -36,6 +36,7 @@ import assess from './tools/assess.js';
 import cve from './tools/cve.js';
 import headers from './tools/headers.js';
 import records from './tools/records.js';
+import resources from './tools/resources.js';
 import dorks from './tools/dorks.js';
 import extract from './tools/extract.js';
 import utils from './tools/utils.js';
@@ -55,7 +56,7 @@ const GROUPS = [
   { id: 'geo', label: 'geo', tools: [geo, map] },
   { id: 'assets', label: 'assets', tools: [crypto, image, file] },
   { id: 'threat', label: 'threat', tools: [assess, cve, headers] },
-  { id: 'research', label: 'research', tools: [records, dorks] },
+  { id: 'research', label: 'research', tools: [records, dorks, resources] },
   { id: 'tools', label: 'tools', tools: [extract, utils] },
   { id: 'workspace', label: 'workspace', tools: [graph, caseFile, dossier, account, settingsTool] },
 ];
@@ -76,7 +77,7 @@ const BLURBS = {
   cidr: 'subnet math, v4 & v6', geo: 'coordinates → place & imagery', map: 'plot infrastructure worldwide',
   crypto: 'btc & eth wallet activity', image: 'reverse search & exif', file: 'static triage & hash lookup',
   assess: 'scan a site, scored report', cve: 'severity & exploit odds', headers: 'trace & vet an email', records: 'companies, courts, news',
-  dorks: 'operator query builder', extract: 'pull iocs from any text', utils: 'encode, decode, hash',
+  dorks: 'operator query builder', resources: 'a directory of osint tools', extract: 'pull iocs from any text', utils: 'encode, decode, hash',
   graph: 'your pivots, visualised', case: 'notes, timeline, reports',
   account: 'sign in with github', settings: 'backend, keys, theme',
   dossier: 'compile an infra report', favicon: 'favicon → shodan pivot',
@@ -87,7 +88,7 @@ const byId = Object.fromEntries(TOOLS.map(t => [t.id, t]));
 const groupOf = Object.fromEntries(GROUPS.flatMap(g => g.tools.map(t => [t.id, g.label || 'start'])));
 const title = t => TITLES[t.id] || t.label;
 // Tools whose empty state is itself useful (no query needed to be worth showing).
-const SHOW_ON_IDLE = new Set(['image', 'dorks', 'breach', 'utils', 'file', 'map', 'monitor']);
+const SHOW_ON_IDLE = new Set(['image', 'dorks', 'breach', 'utils', 'file', 'map', 'monitor', 'resources']);
 
 const $ = s => document.querySelector(s);
 const nav = $('#tabs'), form = $('#search'), input = $('#q'), out = $('#out');
@@ -258,7 +259,7 @@ async function run(tool, q, { idle = false } = {}) {
   try {
     const result = await tool.run(q);
     if (id !== runId) return;
-    out.replaceChildren(...(idle ? [examples(tool)] : []), ...[result].flat().filter(Boolean));
+    out.replaceChildren(...(idle ? [examples(tool)] : []).filter(Boolean), ...[result].flat().filter(Boolean));
     if (q) remember(tool.id, q);
     renderRecent();
   } catch (e) {
