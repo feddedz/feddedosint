@@ -15,8 +15,15 @@ import cidr from './cidr.js';
 import geo from './geo.js';
 import file from './file.js';
 import map from './map.js';
+import dns from './dns.js';
+import whois from './whois.js';
+import cert from './cert.js';
+import reputation from './reputation.js';
+import typosquat from './typosquat.js';
+import hashid from './hashid.js';
+import tech from './tech.js';
 
-const TOOLS = { domain, recon, ip, email, username, phone, crypto, cve, breach, asn, url, mac, cidr, geo, file, map };
+const TOOLS = { domain, recon, ip, email, username, phone, crypto, cve, breach, asn, url, mac, cidr, geo, file, map, dns, whois, cert, reputation, typosquat, hashid, tech };
 
 // Decide the most likely entity types for an input, best guess first.
 export function classify(v) {
@@ -28,13 +35,13 @@ export function classify(v) {
   if (/^(bc1[0-9a-z]{20,80}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|0x[0-9a-fA-F]{40})$/.test(v)) out.push('crypto');
   if (/^([0-9a-f]{2}[:-]){5}[0-9a-f]{2}$|^[0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}$/i.test(v)) out.push('mac');
   if (/^[0-9a-f.:]+\/\d{1,3}$/i.test(v)) out.push('cidr', 'asn');
-  if (isIP(bare)) out.push('ip', 'asn', 'map');
+  if (isIP(bare)) out.push('ip', 'asn', 'reputation', 'map');
   if (/^-?\d{1,2}(\.\d+)?\s*,\s*-?\d{1,3}(\.\d+)?$/.test(v) || /°.*[NS].*°.*[EW]/i.test(v)) out.push('geo');
   if (/^(as)?\d{2,10}$/i.test(v) && !isIP(v)) out.push('asn');
-  if (/^([a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64}|[a-f0-9]{128})$/i.test(v)) out.push('file');
+  if (/^([a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64}|[a-f0-9]{128})$/i.test(v)) out.push('hashid', 'file');
   if (/^\+?[\d\s().-]{7,}$/.test(v) && v.replace(/\D/g, '').length >= 7 && !/^\d{1,10}$/.test(v.replace(/\D/g, ''))) out.push('phone');
   if (/^https?:\/\/[^/]+\/./i.test(v) || /^https?:\/\/[^/]+\/?\?/i.test(v)) out.push('url');
-  if (!isIP(bare) && (/^https?:\/\//i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v))) out.push('domain', 'recon', 'map');
+  if (!isIP(bare) && (/^https?:\/\//i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v))) out.push('domain', 'dns', 'recon', 'whois', 'cert', 'tech', 'typosquat', 'map');
   if (!out.length) out.push('username');
   return [...new Set(out)];
 }

@@ -14,7 +14,22 @@ Format:
 
 ---
 
-### 2026-10-30 00:46 UTC — five new tools: cert, transform, wellknown, reputation, emailperm
+### 2026-10-30 01:09 UTC — four more tools + smarter universal search
+- **dns** (network): full DNS record dump (A/AAAA/CNAME/NS/MX/SOA/TXT/CAA) + mail auth (SPF, DMARC,
+  common DKIM selectors) over DoH.
+- **whois** (network): RDAP registration — registrar, created/expiry, domain age, status, NS, DNSSEC,
+  with recently-registered / expiring-soon flags.
+- **tech** (network): single-site stack fingerprint (CMS/framework/server/CDN/analytics) via proxy.
+- **hashid** (tools): identify hash/token type from format (MD5/SHA family/NTLM/bcrypt/Argon2/JWT/
+  base64/UUID) + the right lookups. Offline.
+- Universal search (overview.js) now routes domains to dns/whois/cert/tech/typosquat, IPs to
+  reputation, and hashes to hashid.
+- Tested headless: all four render; overview chips include the new tools; 49 tools load (2 console
+  msgs are the sandbox Leaflet CDN SRI, pre-existing, not a regression).
+- files: js/tools/{dns,whois,tech,hashid}.js, js/tools/overview.js, js/app.js, js/icons.js
+- PR: not yet shipped
+
+### ### 2026-10-30 00:46 UTC — five new tools: cert, transform, wellknown, reputation, emailperm
 - **cert** (network): crt.sh certificate-transparency history — subdomains from SANs, issuers,
   timeline and expiry warning.
 - **transform** (tools): CyberChef-style chainable pipeline (base64/url/hex/binary/rot13/reverse/

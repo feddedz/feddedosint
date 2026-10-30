@@ -88,7 +88,8 @@ export default {
   availability across popular sites + games, wildcard handle-hunting), email, emailperm (name→email
   permutator), phone, breach.
 - **network:** recon (attack-surface mapper), monitor (change snapshots + alerts), sweep (bulk
-  ASN/CIDR exposure), domain, ip, asn, url, mac, cidr, takeover (dangling-CNAME audit),
+  ASN/CIDR exposure), domain, ip,asn, url, mac, cidr, dns (full record dump), whois (RDAP), tech (stack fingerprint),
+  takeover (dangling-CNAME audit),
   typosquat (brand-protection lookalike-domain finder), cert (CT history / SANs),
   wellknown (robots/sitemap/security.txt), favicon (Shodan favicon-hash pivot),
   wayback (Internet Archive CDX endpoint harvester).
@@ -97,7 +98,8 @@ export default {
 - **threat:** assess (authorized web vuln assessment), reputation (IP/domain reputation), cve,
   headers (email header analysis).
 - **research:** records, dorks (search-operator builder), resources (searchable OSINT link directory).
-- **tools:** extract (IOCs from text), utils (encode/decode/hash), transform (chainable transform pipeline).
+- **tools:** extract (IOCs from text), utils (encode/decode/hash), transform (chainable transform
+  pipeline), hashid (hash/token identifier).
 - **intelligence:** engine (autonomous, from `collect.js`), playbook (automated audit workflow +
   risk-scored report, `js/risk.js`), chat (streaming Gemini).
 - **workspace:** graph, case, dossier (infra report export), account, settings.
