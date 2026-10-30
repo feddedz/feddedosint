@@ -22,6 +22,7 @@ const P = {
   cve: '<path d="M12 2.5l9.5 16.5H2.5z"/><path d="M12 9.5v4.5"/><circle cx="12" cy="16.6" r="0.6" fill="currentColor"/>',
   crypto: '<circle cx="12" cy="12" r="8.5"/><path d="M9.5 8.5h4a2 2 0 010 4h-4zM9.5 12.5h4.3a2 2 0 010 4H9.5zM9.5 8.5v8M11 6.5v2M11 16.5v2M13 6.5v2M13 16.5v2"/>',
   image: '<rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l5-4 4 3 3-2.5 4 3.5"/>',
+  resources: '<rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9h17M8 4v16M12 12.5h5M12 15.5h5"/>',
   records: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 15.5h6"/>',
   dorks: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M8.5 11h5M11 8.5v5"/>',
   utils: '<path d="M14.5 6a3.5 3.5 0 00-4.9 4.3L4 15.9 6.1 18l5.6-5.6A3.5 3.5 0 0016 8.5l-2 2-1.8-1.8z"/>',
