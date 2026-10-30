@@ -14,7 +14,16 @@ Format:
 
 ---
 
-### 2026-10-30 00:08 UTC — resources (OSINT directory) + idle render fix
+### 2026-10-30 00:34 UTC — typosquat (brand protection)
+- New **typosquat** tool (network): generates lookalike domains of a brand (omission, transposition,
+  keyboard-adjacent, homoglyph, insertion, hyphenation, rn/m, TLD swaps, combosquats) and checks
+  each over public DNS — flags registered ones and, critically, mail-capable ones (phishing-ready),
+  ranked most-dangerous-first with copy/export. Public DNS only, client-side.
+- Tested headless: 113 variants, homoglyph examp1e.com flagged active+mail; no console errors.
+- files: js/tools/typosquat.js, js/app.js, js/icons.js
+- PR: not yet shipped
+
+### ### 2026-10-30 00:08 UTC — resources (OSINT directory) + idle render fix
 - New **resources** tool (research): a searchable, categorized directory of ~97 external OSINT
   resources across 19 categories (search, username, email, domain/DNS, subdomains, IP/network,
   cloud, threat-intel, vulns, image/geo/maps, transport, business records, crypto, archives, code,
