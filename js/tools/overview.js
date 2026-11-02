@@ -1,6 +1,8 @@
 import { h, card, muted, badge, isIP } from '../util.js';
 import domain from './domain.js';
 import recon from './recon.js';
+import origin from './origin.js';
+import crawl from './crawl.js';
 import ip from './ip.js';
 import email from './email.js';
 import username from './username.js';
@@ -23,7 +25,7 @@ import typosquat from './typosquat.js';
 import hashid from './hashid.js';
 import tech from './tech.js';
 
-const TOOLS = { domain, recon, ip, email, username, phone, crypto, cve, breach, asn, url, mac, cidr, geo, file, map, dns, whois, cert, reputation, typosquat, hashid, tech };
+const TOOLS = { domain, recon, origin, crawl, ip, email, username, phone, crypto, cve, breach, asn, url, mac, cidr, geo, file, map, dns, whois, cert, reputation, typosquat, hashid, tech };
 
 // Decide the most likely entity types for an input, best guess first.
 export function classify(v) {
@@ -40,8 +42,8 @@ export function classify(v) {
   if (/^(as)?\d{2,10}$/i.test(v) && !isIP(v)) out.push('asn');
   if (/^([a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64}|[a-f0-9]{128})$/i.test(v)) out.push('hashid', 'file');
   if (/^\+?[\d\s().-]{7,}$/.test(v) && v.replace(/\D/g, '').length >= 7 && !/^\d{1,10}$/.test(v.replace(/\D/g, ''))) out.push('phone');
-  if (/^https?:\/\/[^/]+\/./i.test(v) || /^https?:\/\/[^/]+\/?\?/i.test(v)) out.push('url');
-  if (!isIP(bare) && (/^https?:\/\//i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v))) out.push('domain', 'dns', 'recon', 'whois', 'cert', 'tech', 'typosquat', 'map');
+  if (/^https?:\/\/[^/]+\/./i.test(v) || /^https?:\/\/[^/]+\/?\?/i.test(v)) out.push('url', 'crawl');
+  if (!isIP(bare) && (/^https?:\/\//i.test(v) || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(v))) out.push('domain', 'dns', 'recon', 'origin', 'whois', 'cert', 'tech', 'typosquat', 'map');
   if (!out.length) out.push('username');
   return [...new Set(out)];
 }
