@@ -19,6 +19,8 @@ import dns from './tools/dns.js';
 import whois from './tools/whois.js';
 import tech from './tools/tech.js';
 import recon from './tools/recon.js';
+import origin from './tools/origin.js';
+import crawl from './tools/crawl.js';
 import monitor from './tools/monitor.js';
 import wayback from './tools/wayback.js';
 import wellknown from './tools/wellknown.js';
@@ -62,7 +64,7 @@ const GROUPS = [
   { id: 'start', label: '', tools: [overview] },
   { id: 'intelligence', label: 'intelligence', tools: [engine, playbook, chat] },
   { id: 'identity', label: 'identity', tools: [username, ogu, email, emailperm, phone, breach] },
-  { id: 'network', label: 'network', tools: [recon, monitor, sweep, domain, ip, asn, url, mac, cidr, dns, whois, takeover, typosquat, cert, tech, wellknown, wayback, favicon] },
+  { id: 'network', label: 'network', tools: [recon, origin, crawl, monitor, sweep, domain, ip, asn, url, mac, cidr, dns, whois, takeover, typosquat, cert, tech, wellknown, wayback, favicon] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
   { id: 'assets', label: 'assets', tools: [crypto, image, file] },
   { id: 'threat', label: 'threat', tools: [assess, reputation, cve, headers] },
@@ -72,7 +74,7 @@ const GROUPS = [
 ];
 const TITLES = {
   overview: 'universal search', username: 'username intel', ogu: 'og username finder', emailperm: 'email permutator', email: 'email intel', phone: 'phone intel', breach: 'breach exposure',
-  recon: 'attack surface recon', monitor: 'change monitoring', dns: 'dns records', whois: 'whois / rdap', tech: 'tech fingerprint', wayback: 'wayback endpoints', takeover: 'subdomain takeover', typosquat: 'brand protection', cert: 'certificate transparency', wellknown: 'well-known files', sweep: 'bulk exposure sweep', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
+  recon: 'attack surface recon', origin: 'cdn origin finder', crawl: 'live page recon', monitor: 'change monitoring', dns: 'dns records', whois: 'whois / rdap', tech: 'tech fingerprint', wayback: 'wayback endpoints', takeover: 'subdomain takeover', typosquat: 'brand protection', cert: 'certificate transparency', wellknown: 'well-known files', sweep: 'bulk exposure sweep', domain: 'domain intel', ip: 'ip intel', asn: 'asn explorer', url: 'url analyzer', mac: 'mac lookup', cidr: 'subnet calculator',
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
   assess: 'vulnerability assessment', reputation: 'ip/domain reputation', cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
   extract: 'entity extractor', utils: 'decoders', transform: 'transform pipeline', hashid: 'hash identifier', graph: 'investigation graph', case: 'case file',
@@ -82,7 +84,7 @@ const TITLES = {
 const BLURBS = {
   overview: 'detect & run anything', username: 'one handle, 90+ sites', ogu: 'hunt handles across sites & games', emailperm: 'name + domain → emails', email: 'provider, security, gravatar',
   phone: 'validate & format any number', breach: 'is your data exposed?',
-  recon: 'map a domain\'s whole attack surface', monitor: 'snapshot & alert on changes', dns: 'every dns record', whois: 'registration, age, expiry', tech: 'what a site runs on', wayback: 'archived urls & endpoints', takeover: 'dangling-CNAME audit', typosquat: 'lookalike domain finder', cert: 'certs, SANs & subdomains', wellknown: 'robots, sitemap, security.txt', sweep: 'asn/cidr → exposure', domain: 'dns, whois, mail, subdomains',
+  recon: 'map a domain\'s whole attack surface', origin: 'unmask the ip behind a cdn', crawl: 'forms, links & secrets on a live page', monitor: 'snapshot & alert on changes', dns: 'every dns record', whois: 'registration, age, expiry', tech: 'what a site runs on', wayback: 'archived urls & endpoints', takeover: 'dangling-CNAME audit', typosquat: 'lookalike domain finder', cert: 'certs, SANs & subdomains', wellknown: 'robots, sitemap, security.txt', sweep: 'asn/cidr → exposure', domain: 'dns, whois, mail, subdomains',
   ip: 'location, ports, ownership', asn: 'networks & address space', url: 'dissect & vet a link', mac: 'device maker & formats',
   cidr: 'subnet math, v4 & v6', geo: 'coordinates → place & imagery', map: 'plot infrastructure worldwide',
   crypto: 'btc & eth wallet activity', image: 'reverse search & exif', file: 'static triage & hash lookup',

@@ -14,6 +14,21 @@ Format:
 
 ---
 
+### 2026-11-02 21:42 UTC — origin finder + live crawler
+- **origin** (network): hunts the real server IP behind a CDN/WAF (Cloudflare range detection via
+  published CIDRs, plus header hints) using CT subdomains, origin-style hostnames, MX and SPF ip4
+  leakage → resolves all, keeps non-CDN IPs, enriches via Shodan, ranks candidates by confidence.
+- **crawl** (network): live single-page recon through the proxy — maps links (internal/external),
+  forms + their inputs (injection surface, flags login/upload/GET forms), scripts, emails, HTML
+  comments, and scans inline + external JS for leaked keys and API endpoints.
+- Registered both in app.js + universal search (overview classify: origin/crawl for domains/URLs).
+- Tests: dedicated browser suite passes (CDN bypass finds the SPF/subdomain-leaked origin; crawl
+  finds the login form, AWS key, endpoint, email). Worker suite green; app loads clean.
+- Note: a parallel session had already shipped sweep/takeover/wayback/favicon + 7 others; those
+  were reconciled by resetting to main, so this adds only the two genuinely-new tools.
+- files: js/tools/origin.js, js/tools/crawl.js, js/app.js, js/tools/overview.js
+- PR: not yet shipped
+
 ### 2026-10-30 01:09 UTC — four more tools + smarter universal search
 - **dns** (network): full DNS record dump (A/AAAA/CNAME/NS/MX/SOA/TXT/CAA) + mail auth (SPF, DMARC,
   common DKIM selectors) over DoH.
