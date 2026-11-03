@@ -56,13 +56,14 @@ import graph from './tools/graph.js';
 import caseFile from './tools/case.js';
 import account from './tools/account.js';
 import engine from './tools/engine.js';
+import analyst from './tools/analyst.js';
 import chat from './tools/chat.js';
 import settingsTool from './tools/settings.js';
 
 // Sidebar groups. Every labelled group can be collapsed; collapsed groups still show the active tool.
 const GROUPS = [
   { id: 'start', label: '', tools: [overview] },
-  { id: 'intelligence', label: 'intelligence', tools: [engine, playbook, chat] },
+  { id: 'intelligence', label: 'intelligence', tools: [analyst, engine, playbook, chat] },
   { id: 'identity', label: 'identity', tools: [username, ogu, email, emailperm, phone, breach] },
   { id: 'network', label: 'network', tools: [recon, origin, crawl, monitor, sweep, domain, ip, asn, url, mac, cidr, dns, whois, takeover, typosquat, cert, tech, wellknown, wayback, favicon] },
   { id: 'geo', label: 'geo', tools: [geo, map] },
@@ -78,7 +79,7 @@ const TITLES = {
   geo: 'geolocation', map: 'infrastructure map', crypto: 'wallet lookup', image: 'image analysis', file: 'file triage',
   assess: 'vulnerability assessment', reputation: 'ip/domain reputation', cve: 'vulnerability lookup', headers: 'email header analysis', records: 'records & news', dorks: 'search engines',
   extract: 'entity extractor', utils: 'decoders', transform: 'transform pipeline', hashid: 'hash identifier', graph: 'investigation graph', case: 'case file',
-  account: 'account', settings: 'settings', dossier: 'dossier export', favicon: 'favicon hash', engine: 'autonomous engine', chat: 'ai assistant',
+  account: 'account', settings: 'settings', dossier: 'dossier export', favicon: 'favicon hash', analyst: 'intelligence analyst', engine: 'autonomous engine', chat: 'ai assistant',
 };
 // One short line per tool for the launcher.
 const BLURBS = {
@@ -93,7 +94,7 @@ const BLURBS = {
   graph: 'your pivots, visualised', case: 'notes, timeline, reports',
   account: 'sign in with github', settings: 'backend, keys, theme',
   dossier: 'compile an infra report', favicon: 'favicon → shodan pivot',
-  engine: 'investigate automatically', playbook: 'one-click audit workflow', chat: 'ask, plan, interpret',
+  analyst: 'relationships, risk propagation & predictions', engine: 'investigate automatically', playbook: 'one-click audit workflow', chat: 'ask, plan, interpret',
 };
 const TOOLS = GROUPS.flatMap(g => g.tools);
 const byId = Object.fromEntries(TOOLS.map(t => [t.id, t]));
