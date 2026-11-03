@@ -14,6 +14,23 @@ Format:
 
 ---
 
+### 2026-11-03 19:43 UTC — flagship: intelligence analyst
+- **analyst** (intelligence): the analytical layer on top of the collect-BFS that `engine` lacks.
+  Maps the infrastructure relationship graph, then: **risk propagation** (an asset inherits a
+  share of the exposure of hosts/ASNs it shares — shared-host contagion shown base→propagated),
+  **infra entity clustering** (domains on one host / IPs in one ASN → probable same operator),
+  **anomaly/pattern** detection (shared-hosting clusters, recently-registered assets),
+  **predictions** (forward scenarios with high/med/low confidence + cited evidence), and a
+  **temporal diff** vs the seed's last run (new/resolved assets & findings, localStorage snapshot).
+  Output is tiered: CONFIRMED FACTS · PROBABLE RELATIONSHIPS · SPECULATIVE PREDICTIONS, each cited.
+  Optional AI scenario layer on top. Infrastructure/orgs only — no private-individual profiling
+  or entity resolution (CLAUDE.md §9; that was the ChatGPT pitch's flagged-risk piece, left out).
+- Reuses collect.js, risk.js, store graph; kept out of overview TOOLS to avoid a circular import.
+- Tests: dedicated browser suite passes (propagation, shared-host cluster, tiers, predictions,
+  temporal baseline + diff). Worker suite green; app regression clean.
+- files: js/tools/analyst.js, js/app.js
+- PR: not yet shipped
+
 ### 2026-11-02 21:42 UTC — origin finder + live crawler
 - **origin** (network): hunts the real server IP behind a CDN/WAF (Cloudflare range detection via
   published CIDRs, plus header hints) using CT subdomains, origin-style hostnames, MX and SPF ip4
