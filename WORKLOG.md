@@ -14,6 +14,20 @@ Format:
 
 ---
 
+### 2026-11-09 22:33 UTC — all-in-one search → aggregated dashboard
+- Rebuilt the `overview` (universal search) tool. It no longer runs just one tool and links the
+  rest: it now detects the entity type and runs a curated panel of the relevant FAST tools in
+  parallel, each as its own live-filling section (independent spinner → result), and offers the
+  heavy tools (recon, analyst, crawl, wayback, takeover, engine, map…) as one-click deep-dive
+  chips. Profiles per type (domain → domain+cert+tech+reputation; ip → ip+reputation; email →
+  email+breach+emailperm; url → url+tech; etc.), trimmed to avoid duplicating what each tool
+  already covers.
+- Added CSS: `.deepbar`, `.chip.deep`, `.aggsection`, `.agghead`, `.aggbody`.
+- Tests: dedicated browser suite passes (domain fans out to 4 sections + full deep-dive bar, all
+  bodies fill, CVE routes to the single cve tool, no console errors); app regression ERRORS: none.
+- files: js/tools/overview.js, css/style.css
+- PR: not yet shipped
+
 ### 2026-11-09 22:22 UTC — timeline tool + stat-row CSS fix
 - **timeline** (network): reconstructs a domain's history from public records — RDAP lifecycle
   (registered/changed/expires), when each subdomain first appeared in certificate-transparency

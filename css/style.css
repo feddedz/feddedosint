@@ -559,6 +559,14 @@ footer p { margin: 4px 0; }
   border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
 }
 
+/* all-in-one aggregated search */
+.deepbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -4px 0 4px; }
+.chip.deep { border-color: var(--line-strong); color: var(--text); }
+.aggsection { margin-top: 20px; }
+.agghead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.agghead h3 { margin: 0; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--dim); }
+.aggbody { min-height: 20px; }
+
 /* list of records / breaches / news */
 .breach-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow: auto; }
 .breach-item { padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--inset-2); }
