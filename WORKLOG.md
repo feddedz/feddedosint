@@ -14,6 +14,21 @@ Format:
 
 ---
 
+### 2026-11-09 22:22 UTC — timeline tool + stat-row CSS fix
+- **timeline** (network): reconstructs a domain's history from public records — RDAP lifecycle
+  (registered/changed/expires), when each subdomain first appeared in certificate-transparency
+  logs (emergence grouped by year), and the Internet Archive web-presence span — merged into one
+  chronological, year-grouped stream with age/presence/subdomain/cert stat tiles + markdown export.
+  The temporal "look back" counterpart to monitor's "watch ahead"; complements cert (current SANs)
+  by showing *when* things appeared.
+- **Fix:** `.statrow4` and `.links.col` were never in css/style.css (lost when an earlier dup
+  commit was reset), so `crawl`, `origin` and `timeline` rendered their stat tiles stacked. Added
+  both rules — tiles now sit in a row (2-up on mobile).
+- Tests: dedicated browser suite passes (RDAP/CT/Wayback merge, year grouping, chronological
+  order); app regression clean; worker suite green.
+- files: js/tools/timeline.js, js/app.js, js/tools/overview.js, css/style.css
+- PR: not yet shipped
+
 ### 2026-11-03 19:43 UTC — flagship: intelligence analyst
 - **analyst** (intelligence): the analytical layer on top of the collect-BFS that `engine` lacks.
   Maps the infrastructure relationship graph, then: **risk propagation** (an asset inherits a

@@ -427,6 +427,9 @@ button.mini.ghost { background: none; border-color: transparent; }
 
 /* recon: stat tiles, data table, findings */
 .statrow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 10px 0 12px; }
+.statrow4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0 12px; }
+.links.col { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; max-height: 420px; overflow: auto; }
+.links.col a { font-size: 12px; overflow-wrap: anywhere; }
 .statcell { border: 1px solid var(--line); border-radius: 10px; background: var(--inset-2); padding: 10px 8px; text-align: center; }
 .statnum { font-size: 22px; font-weight: 600; line-height: 1; }
 .statlbl { margin-top: 5px; }
@@ -438,7 +441,7 @@ button.mini.ghost { background: none; border-color: transparent; }
 .risklist { display: flex; flex-direction: column; gap: 6px; }
 .riskrow { display: flex; align-items: flex-start; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--inset-2); font-size: 13px; }
 .riskrow .badge { flex: none; margin-top: 1px; }
-@media (max-width: 640px) { .statrow { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .statrow { grid-template-columns: repeat(3, 1fr); } .statrow4 { grid-template-columns: repeat(2, 1fr); } }
 
 .dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; }
 .dot.pending { border: 1.5px solid var(--dim); border-top-color: var(--accent); animation: spin .7s linear infinite; width: 10px; height: 10px; margin-top: 5px; }
